@@ -17,87 +17,88 @@ class StartEndTest(unittest.TestCase):
 
     def test_start(self):
         query = SequenceGroup(
-            lst=[
+            lst=(
                 StartGroup(),
-                LeafGroup(lst=["a"]),
-            ]
+                LeafGroup(lst=("a",),
+                          )
+            )
         )
 
         variant = SequenceGroup(
-            lst=[
-                LeafGroup(lst=["a"]),
-                LeafGroup(lst=["b"]),
-            ]
+            lst=(
+                LeafGroup(lst=("a",)),
+                LeafGroup(lst=("b",)),
+            )
         )
 
         self.assertTrue(check_variant(variant, query, self.activities))
 
         variant = SequenceGroup(
-            lst=[
-                LeafGroup(lst=["b"]),
-                LeafGroup(lst=["a"]),
-            ]
+            lst=(
+                LeafGroup(lst=("b",)),
+                LeafGroup(lst=("a",)),
+            )
         )
 
         self.assertFalse(check_variant(variant, query, self.activities))
 
     def test_end(self):
         query = SequenceGroup(
-            lst=[
-                LeafGroup(lst=["a"]),
+            lst=(
+                LeafGroup(lst=("a",)),
                 EndGroup(),
-            ]
+            )
         )
 
         variant = SequenceGroup(
-            lst=[
-                LeafGroup(lst=["a"]),
-                LeafGroup(lst=["b"]),
-            ]
+            lst=(
+                LeafGroup(lst=("a",)),
+                LeafGroup(lst=("b",)),
+            )
         )
 
         self.assertFalse(check_variant(variant, query, self.activities))
 
         variant = SequenceGroup(
-            lst=[
-                LeafGroup(lst=["b"]),
-                LeafGroup(lst=["a"]),
-            ]
+            lst=(
+                LeafGroup(lst=("b",)),
+                LeafGroup(lst=("a",)),
+            )
         )
 
         self.assertTrue(check_variant(variant, query, self.activities))
 
     def test_start_end(self):
         query = SequenceGroup(
-            lst=[
+            lst=(
                 StartGroup(),
-                LeafGroup(lst=["a"]),
+                LeafGroup(lst=("a",)),
                 EndGroup(),
-            ]
+            )
         )
 
         variant = SequenceGroup(
-            lst=[
-                LeafGroup(lst=["a"]),
-            ]
+            lst=(
+                LeafGroup(lst=("a",)),
+            )
         )
 
         self.assertTrue(check_variant(variant, query, self.activities))
 
         variant = SequenceGroup(
-            lst=[
-                LeafGroup(lst=["b"]),
-                LeafGroup(lst=["a"]),
-            ]
+            lst=(
+                LeafGroup(lst=("b",)),
+                LeafGroup(lst=("a",)),
+            )
         )
 
         self.assertFalse(check_variant(variant, query, self.activities))
 
         variant = SequenceGroup(
-            lst=[
-                LeafGroup(lst=["a"]),
-                LeafGroup(lst=["b"]),
-            ]
+            lst=(
+                LeafGroup(lst=("a",)),
+                LeafGroup(lst=("b",)),
+            )
         )
 
         self.assertFalse(check_variant(variant, query, self.activities))

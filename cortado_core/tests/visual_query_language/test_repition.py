@@ -14,43 +14,43 @@ class SimpleRepitionTest(unittest.TestCase):
         super().__init__(*args, **kwargs)
 
         self.query = SequenceGroup(
-            lst=[
-                LeafGroup(lst=["a"]),
-                LoopGroup(lst=[LoopGroup(lst=["b"], count=2)]),
-                LeafGroup(lst=["c"]),
-            ]
+            lst=(
+                LeafGroup(lst=("a",)),
+                LoopGroup(lst=(LoopGroup(lst=("b",), count=2))),
+                LeafGroup(lst=("c",)),
+            )
         )
 
         self.activities = [chr(i) for i in range(ord("a"), ord("z") + 1)]
 
     def test_match(self):
         variant = SequenceGroup(
-            lst=[
-                LeafGroup(lst=["a"]),
-                LeafGroup(lst=["b"]),
-                LeafGroup(lst=["b"]),
-                LeafGroup(lst=["c"]),
-            ]
+            lst=(
+                LeafGroup(lst=("a",)),
+                LeafGroup(lst=("b",)),
+                LeafGroup(lst=("b",)),
+                LeafGroup(lst=("c",)),
+            )
         )
 
         self.assertTrue(check_variant(variant, self.query, self.activities))
 
     def test_too_few_repetitions(self):
         variant = SequenceGroup(
-            lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["b"]), LeafGroup(lst=["c"])]
+            lst=(LeafGroup(lst=("a",)), LeafGroup(lst=("b",)), LeafGroup(lst=("c",)))
         )
 
         self.assertFalse(check_variant(variant, self.query, self.activities))
 
     def test_too_many_repetitions(self):
         variant = SequenceGroup(
-            lst=[
-                LeafGroup(lst=["a"]),
-                LeafGroup(lst=["b"]),
-                LeafGroup(lst=["b"]),
-                LeafGroup(lst=["b"]),
-                LeafGroup(lst=["c"]),
-            ]
+            lst=(
+                LeafGroup(lst=("a",)),
+                LeafGroup(lst=("b",)),
+                LeafGroup(lst=("b",)),
+                LeafGroup(lst=("b",)),
+                LeafGroup(lst=("c",)),
+            )
         )
 
         self.assertFalse(check_variant(variant, self.query, self.activities))

@@ -9,55 +9,55 @@ class SimpleParallelTest(unittest.TestCase):
         super().__init__(*args, **kwargs)
 
         self.query = ParallelGroup(
-            lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["b"]), LeafGroup(lst=["c"])]
+            lst=(LeafGroup(lst=("a",)), LeafGroup(lst=("b",)), LeafGroup(lst=("c",)))
         )
 
         self.activities = [chr(i) for i in range(ord("a"), ord("z") + 1)]
 
     def test_exact_match(self):
         variant = ParallelGroup(
-            lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["b"]), LeafGroup(lst=["c"])]
+            lst=(LeafGroup(lst=("a",)), LeafGroup(lst=("b",)), LeafGroup(lst=("c",)))
         )
 
         self.assertTrue(check_variant(variant, self.query, self.activities))
 
     def test_with_additional_branch(self):
         variant = ParallelGroup(
-            lst=[
-                LeafGroup(lst=["a"]),
-                LeafGroup(lst=["b"]),
-                LeafGroup(lst=["c"]),
-                LeafGroup(lst=["d"]),
-            ]
+            lst=(
+                LeafGroup(lst=("a",)),
+                LeafGroup(lst=("b",)),
+                LeafGroup(lst=("c",)),
+                LeafGroup(lst=("d",)),
+            )
         )
 
         self.assertTrue(check_variant(variant, self.query, self.activities))
 
     def test_missing_branch(self):
-        variant = ParallelGroup(lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["b"])])
+        variant = ParallelGroup(lst=(LeafGroup(lst=("a",)), LeafGroup(lst=("b",))))
 
         self.assertFalse(check_variant(variant, self.query, self.activities))
 
     def test_different_order(self):
         variant = ParallelGroup(
-            lst=[LeafGroup(lst=["c"]), LeafGroup(lst=["a"]), LeafGroup(lst=["b"])]
+            lst=(LeafGroup(lst=("c",)), LeafGroup(lst=("a",)), LeafGroup(lst=("b",)))
         )
 
         self.assertTrue(check_variant(variant, self.query, self.activities))
 
     def test_in_sequence(self):
         variant = SequenceGroup(
-            lst=[
-                LeafGroup(lst=["x"]),
+            lst=(
+                LeafGroup(lst=("x",)),
                 ParallelGroup(
-                    lst=[
-                        LeafGroup(lst=["a"]),
-                        LeafGroup(lst=["b"]),
-                        LeafGroup(lst=["c"]),
-                    ]
+                    lst=(
+                        LeafGroup(lst=("a",)),
+                        LeafGroup(lst=("b",)),
+                        LeafGroup(lst=("c",)),
+                    )
                 ),
-                LeafGroup(lst=["y"]),
-            ]
+                LeafGroup(lst=("y",)),
+            )
         )
 
         self.assertTrue(check_variant(variant, self.query, self.activities))

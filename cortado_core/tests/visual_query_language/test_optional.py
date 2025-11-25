@@ -23,123 +23,123 @@ class SimpleOptionalTest(unittest.TestCase):
 
     def test_one_element(self):
         query = SequenceGroup(
-            lst=[
-                LeafGroup(lst=["a"]),
-                OptionalGroup(lst=[LeafGroup(lst=["b"])]),
-                LeafGroup(lst=["c"]),
-            ]
+            lst=(
+                LeafGroup(lst=("a",)),
+                OptionalGroup(lst=(LeafGroup(lst=("b",)))),
+                LeafGroup(lst=("c",)),
+            )
         )
 
         variant = SequenceGroup(
-            lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["b"]), LeafGroup(lst=["c"])]
+            lst=(LeafGroup(lst=("a",)), LeafGroup(lst=("b",)), LeafGroup(lst=("c",)))
         )
 
         self.assertTrue(check_variant(variant, query, self.activities))
 
-        variant = SequenceGroup(lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["c"])])
+        variant = SequenceGroup(lst=(LeafGroup(lst=("a",)), LeafGroup(lst=("c",))))
 
         self.assertTrue(check_variant(variant, query, self.activities))
 
         variant = SequenceGroup(
-            lst=[
-                LeafGroup(lst=["a"]),
-                LeafGroup(lst=["b"]),
-                LeafGroup(lst=["b"]),
-                LeafGroup(lst=["c"]),
-            ]
+            lst=(
+                LeafGroup(lst=("a",)),
+                LeafGroup(lst=("b",)),
+                LeafGroup(lst=("b",)),
+                LeafGroup(lst=("c",)),
+            )
         )
 
         self.assertFalse(check_variant(variant, query, self.activities))
 
     def test_grouped(self):
         query = SequenceGroup(
-            lst=[
-                LeafGroup(lst=["a"]),
+            lst=(
+                LeafGroup(lst=("a",)),
                 OptionalGroup(
-                    lst=[
-                        SequenceGroup(lst=[LeafGroup(lst=["b"]), LeafGroup(lst=["c"])])
-                    ]
+                    lst=(
+                        SequenceGroup(lst=(LeafGroup(lst=("b",)), LeafGroup(lst=("c",))))
+                    )
                 ),
-                LeafGroup(lst=["d"]),
-            ]
+                LeafGroup(lst=("d",)),
+            )
         )
 
         varaint = SequenceGroup(
-            lst=[
-                LeafGroup(lst=["a"]),
-                LeafGroup(lst=["b"]),
-                LeafGroup(lst=["c"]),
-                LeafGroup(lst=["d"]),
-            ]
+            lst=(
+                LeafGroup(lst=("a",)),
+                LeafGroup(lst=("b",)),
+                LeafGroup(lst=("c",)),
+                LeafGroup(lst=("d",)),
+            )
         )
 
         self.assertTrue(check_variant(varaint, query, self.activities))
 
-        varaint = SequenceGroup(lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["d"])])
+        varaint = SequenceGroup(lst=(LeafGroup(lst=("a",)), LeafGroup(lst=("d",))))
 
         self.assertTrue(check_variant(varaint, query, self.activities))
 
         varaint = SequenceGroup(
-            lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["b"]), LeafGroup(lst=["d"])]
+            lst=(LeafGroup(lst=("a",)), LeafGroup(lst=("b",)), LeafGroup(lst=("d",)))
         )
 
         self.assertFalse(check_variant(varaint, query, self.activities))
 
     def test_optional_parallel(self):
         query = SequenceGroup(
-            lst=[
-                LeafGroup(lst=["a"]),
+            lst=(
+                LeafGroup(lst=("a",)),
                 OptionalGroup(
-                    lst=[
-                        ParallelGroup(lst=[LeafGroup(lst=["b"]), LeafGroup(lst=["c"])])
-                    ]
+                    lst=(
+                        ParallelGroup(lst=(LeafGroup(lst=("b",)), LeafGroup(lst=("c",))))
+                    )
                 ),
-                LeafGroup(lst=["d"]),
-            ]
+                LeafGroup(lst=("d",)),
+            )
         )
 
         variant = SequenceGroup(
-            lst=[
-                LeafGroup(lst=["a"]),
-                LeafGroup(lst=["b"]),
-                LeafGroup(lst=["c"]),
-                LeafGroup(lst=["d"]),
-            ]
+            lst=(
+                LeafGroup(lst=("a",)),
+                LeafGroup(lst=("b",)),
+                LeafGroup(lst=("c",)),
+                LeafGroup(lst=("d",)),
+            )
         )
 
         self.assertFalse(check_variant(variant, query, self.activities))
 
-        variant = SequenceGroup(lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["d"])])
+        variant = SequenceGroup(lst=(LeafGroup(lst=("a",)), LeafGroup(lst=("d",))))
 
         self.assertTrue(check_variant(variant, query, self.activities))
 
         variant = SequenceGroup(
-            lst=[
-                LeafGroup(lst=["a"]),
+            lst=(
+                LeafGroup(lst=("a",)),
                 ParallelGroup(
-                    lst=[
-                        LeafGroup(lst=["b"]),
-                        LeafGroup(lst=["c"]),
-                    ]
+                    lst=(
+                        LeafGroup(lst=("b",)),
+                        LeafGroup(lst=("c",)),
+                    )
                 ),
-                LeafGroup(lst=["d"]),
-            ]
+                LeafGroup(lst=("d",)),
+            )
         )
 
         self.assertTrue(check_variant(variant, query, self.activities))
 
         variant = SequenceGroup(
-            lst=[
-                LeafGroup(lst=["a"]),
+            lst=(
+                LeafGroup(lst=("a",)),
                 ParallelGroup(
-                    lst=[
-                        LeafGroup(lst=["b"]),
-                        LeafGroup(lst=["c"]),
-                        LeafGroup(lst=["e"]),
-                    ]
+                    lst=(
+                        LeafGroup(lst=("b",)),
+                        LeafGroup(lst=("c",)),
+                        LeafGroup(lst=("e",)),
+                    )
                 ),
-                LeafGroup(lst=["d"]),
-            ]
+                LeafGroup(lst=("d",)),
+            )
         )
 
         self.assertFalse(check_variant(variant, query, self.activities))
