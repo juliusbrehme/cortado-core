@@ -439,6 +439,10 @@ class FallthroughGroup(Group):
 
 
 class LoopGroup(Group):
+    def __init__(self, count: int = 1, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.count = count
+
     def serialize(self, include_performance=True):
         if include_performance:
             return {
@@ -541,6 +545,34 @@ class LeafGroup(Group):
     def number_of_activities(self) -> int:
         # leaf groups contain more than one activity in the case of fallthroughs
         return len([x for x in self])
+
+
+class AnythingGroup(Group):
+    """Meant to used as a leaf"""
+
+    pass
+
+
+class OptionalGroup(Group):
+    pass
+
+
+class StartGroup(Group):
+    """Meant to used as a leaf"""
+
+    pass
+
+
+class EndGroup(Group):
+    """Meant to used as a leaf"""
+
+    pass
+
+
+class WildcardGroup(Group):
+    """Meant to used as a leaf"""
+
+    pass
 
 
 def get_compare(G_follows):
