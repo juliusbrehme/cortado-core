@@ -19,8 +19,9 @@ class StartEndTest(unittest.TestCase):
         query = SequenceGroup(
             lst=(
                 StartGroup(),
-                LeafGroup(lst=("a",),
-                          )
+                LeafGroup(
+                    lst=("a",),
+                ),
             )
         )
 
@@ -77,11 +78,7 @@ class StartEndTest(unittest.TestCase):
             )
         )
 
-        variant = SequenceGroup(
-            lst=(
-                LeafGroup(lst=("a",)),
-            )
-        )
+        variant = SequenceGroup(lst=(LeafGroup(lst=("a",)),))
 
         self.assertTrue(check_variant(variant, query, self.activities))
 

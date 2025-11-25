@@ -57,7 +57,9 @@ class SimpleOptionalTest(unittest.TestCase):
                 LeafGroup(lst=("a",)),
                 OptionalGroup(
                     lst=(
-                        SequenceGroup(lst=(LeafGroup(lst=("b",)), LeafGroup(lst=("c",))))
+                        SequenceGroup(
+                            lst=(LeafGroup(lst=("b",)), LeafGroup(lst=("c",)))
+                        )
                     )
                 ),
                 LeafGroup(lst=("d",)),
@@ -91,7 +93,9 @@ class SimpleOptionalTest(unittest.TestCase):
                 LeafGroup(lst=("a",)),
                 OptionalGroup(
                     lst=(
-                        ParallelGroup(lst=(LeafGroup(lst=("b",)), LeafGroup(lst=("c",))))
+                        ParallelGroup(
+                            lst=(LeafGroup(lst=("b",)), LeafGroup(lst=("c",)))
+                        )
                     )
                 ),
                 LeafGroup(lst=("d",)),

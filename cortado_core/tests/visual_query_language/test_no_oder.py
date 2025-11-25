@@ -1,7 +1,12 @@
 import unittest
 
 from itertools import permutations
-from cortado_core.utils.split_graph import LeafGroup, SequenceGroup, ParallelGroup, FallthroughGroup
+from cortado_core.utils.split_graph import (
+    LeafGroup,
+    SequenceGroup,
+    ParallelGroup,
+    FallthroughGroup,
+)
 from cortado_core.visual_query_language.query import check_variant
 
 
