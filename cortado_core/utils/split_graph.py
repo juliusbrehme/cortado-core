@@ -548,24 +548,30 @@ class LeafGroup(Group):
 
 
 class AnythingGroup(Group):
-    """ Meant to used as a leaf """
+    """Meant to used as a leaf"""
+
     pass
+
 
 class OptionalGroup(Group):
     pass
 
 
 class StartGroup(Group):
-    """ Meant to used as a leaf """
+    """Meant to used as a leaf"""
+
     pass
 
+
 class EndGroup(Group):
-    """ Meant to used as a leaf """
+    """Meant to used as a leaf"""
+
     pass
 
 
 class WildcardGroup(Group):
-    """ Meant to used as a leaf """
+    """Meant to used as a leaf"""
+
     pass
 
 

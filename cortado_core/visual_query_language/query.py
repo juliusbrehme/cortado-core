@@ -1,6 +1,7 @@
 from cortado_core.utils.split_graph import Group
 from typing import List
 
+
 def check_variant(variant: Group, query: Group, activities: List[str]) -> bool:
     """
     Check if the given variant matches the query pattern.
@@ -13,7 +14,7 @@ def check_variant(variant: Group, query: Group, activities: List[str]) -> bool:
     Returns:
         bool: True if the variant matches the query, False otherwise.
     """
-    
+
     # Placeholder implementation
     # Actual matching logic should be implemented here
     return False
