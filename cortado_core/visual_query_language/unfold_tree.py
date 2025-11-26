@@ -3,7 +3,7 @@ from cortado_core.utils.split_graph import Group
 
 def unfold_tree(tree_query: Group) -> Group:
     """
-    Turns the given tree into a tree to be used for filtering a query.
+    Turns the given query tree into a query tree to be used for filtering a variant.
     Args:
         tree_query: The query given as a tree.
 

@@ -1,20 +1,71 @@
-from cortado_core.utils.split_graph import ChoiceGroup, LeafGroup, WildcardGroup, Group, FallthroughGroup
+from typing import cast
+
+from cortado_core.utils.split_graph import (
+    ChoiceGroup,
+    LeafGroup,
+    WildcardGroup,
+    Group,
+    FallthroughGroup,
+)
 
 
 def match(node_query: Group, node_variant: Group) -> bool:
     """
-    Checks the two Group have the same type and calls the matching function to compare
-    the nodes, if not a ParallelGroup or SequenceGroup.
+    Checks the two Group have the same type and calls the matching function to compare if both are leafs.
+    Else it just checks if the types are the same.
     Args:
         node_query: The Group of the query.
         node_variant: The Group of the variant.
 
     Returns:
-        bool: True if the leaf matches one of the ChoiceGroup children.
+        bool: True if the types are equal or if the leafs match.
     """
-    return True
+    if type(node_query) is ChoiceGroup and type(node_variant) is LeafGroup:
+        return match_choice_group_operator(
+            cast(ChoiceGroup, node_query), cast(LeafGroup, node_variant)
+        )
+    elif type(node_query) is WildcardGroup and type(node_variant) is LeafGroup:
+        return match_wildcard_group_operator(
+            cast(WildcardGroup, node_query), cast(LeafGroup, node_variant)
+        )
+    elif (
+        type(node_query) is FallthroughGroup and type(node_variant) is FallthroughGroup
+    ):
+        return match_no_order(
+            cast(FallthroughGroup, node_query), cast(FallthroughGroup, node_variant)
+        )
+    elif type(node_query) is LeafGroup and type(node_variant) is LeafGroup:
+        return match_leaf_group(
+            cast(LeafGroup, node_query), cast(LeafGroup, node_variant)
+        )
+    elif type(node_query) is type(node_variant):
+        # Just check the type, because we can only check the exact match when we encounter two leafs.
+        return True
+    else:
+        return False
 
-def match_choice_group_operator(node_query: ChoiceGroup, leaf_variant: LeafGroup) -> bool:
+
+def match_leaf_group(leaf_query: LeafGroup, leaf_variant: LeafGroup) -> bool:
+    """
+    Checks if the two leafs match.
+    Args:
+        leaf_query: The LeafGroup of the query.
+        leaf_variant: The LeafGroup of the variant.
+
+    Returns:
+        bool: True if the two leafs match.
+    """
+    if not type(leaf_query) is LeafGroup and type(leaf_variant) is LeafGroup:
+        return False
+
+    if leaf_variant[0] == leaf_query[0]:
+        return True
+    return False
+
+
+def match_choice_group_operator(
+    node_query: ChoiceGroup, leaf_variant: LeafGroup
+) -> bool:
     """
     Checks if the leaf matches one of the children of the choice group.
     Args:
@@ -24,9 +75,20 @@ def match_choice_group_operator(node_query: ChoiceGroup, leaf_variant: LeafGroup
     Returns:
         bool: True if the leaf_variant matches one of the ChoiceGroup children.
     """
-    return True
+    if not (type(node_query) is ChoiceGroup and type(leaf_variant) is LeafGroup):
+        return False
 
-def match_wildcard_group_operator(leaf_query: WildcardGroup, leaf_variant: LeafGroup) -> bool:
+    children = list(node_query)
+
+    for child in children:
+        if leaf_variant[0] == child:
+            return True
+    return False
+
+
+def match_wildcard_group_operator(
+    leaf_query: WildcardGroup, leaf_variant: LeafGroup
+) -> bool:
     """
     Checks if the leaf_variant can match the wildcard group.
     Args:
@@ -36,9 +98,14 @@ def match_wildcard_group_operator(leaf_query: WildcardGroup, leaf_variant: LeafG
     Returns:
         bool: True if the leaf_variant matches the wildcard group.
     """
+    if not (type(leaf_query) is WildcardGroup and type(leaf_variant) is LeafGroup):
+        return False
     return True
 
-def match_no_order(node_query: FallthroughGroup, node_variant: FallthroughGroup) -> bool:
+
+def match_no_order(
+    node_query: FallthroughGroup, node_variant: FallthroughGroup
+) -> bool:
     """
         Checks if the node_variant matches the node_query.
     Args:
@@ -48,4 +115,18 @@ def match_no_order(node_query: FallthroughGroup, node_variant: FallthroughGroup)
     Returns:
         bool: True if the node_variant matches the node_query.
     """
+    if not (
+        type(node_query) is FallthroughGroup and type(node_variant) is FallthroughGroup
+    ):
+        return False
+
+    children_query = set(list(node_query))
+    children_variant = list(node_variant)
+
+    if len(children_query) != len(children_variant):
+        return False
+
+    for child in children_variant:
+        if not child in children_query:
+            return False
     return True
