@@ -1,8 +1,11 @@
-from cortado_core.utils.split_graph import Group
+from cortado_core.utils.split_graph import SequenceGroup
+from cortado_core.visual_query_language.matching_algorithm import match_sequential
 from typing import List
 
 
-def check_variant(variant: Group, query: Group, activities: List[str]) -> bool:
+def check_variant(
+    variant: SequenceGroup, query: SequenceGroup, activities: List[str]
+) -> bool:
     """
     Check if the given variant matches the query pattern.
 
@@ -15,6 +18,4 @@ def check_variant(variant: Group, query: Group, activities: List[str]) -> bool:
         bool: True if the variant matches the query, False otherwise.
     """
 
-    # Placeholder implementation
-    # Actual matching logic should be implemented here
-    return False
+    return match_sequential(query, variant)
