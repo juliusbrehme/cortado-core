@@ -1,7 +1,9 @@
+from typing import List
+
 from cortado_core.utils.split_graph import Group
 
 
-def unfold_tree(tree_query: Group) -> Group:
+def unfold_tree(tree_query: Group) -> List[Group]:
     """
     Turns the given query tree into a query tree to be used for filtering a variant.
     Args:
@@ -10,4 +12,4 @@ def unfold_tree(tree_query: Group) -> Group:
     Returns:
         Group: A tree that is unfolded to be used for filtering.
     """
-    return tree_query
+    return [tree_query]
