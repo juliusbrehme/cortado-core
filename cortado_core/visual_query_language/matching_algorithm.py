@@ -1,5 +1,13 @@
-from cortado_core.utils.split_graph import Group, StartGroup, EndGroup, ParallelGroup
+from cortado_core.utils.split_graph import (
+    Group,
+    StartGroup,
+    EndGroup,
+    ParallelGroup,
+    SequenceGroup,
+    LeafGroup,
+)
 from cortado_core.visual_query_language.matching_functions import match
+from collections import Counter
 from typing import List
 
 
@@ -27,10 +35,9 @@ def check_end_point(query: List[Group], variant: List[Group]) -> bool:
     return True
 
 
-def match_sequential(query: List[Group], variant: List[Group]) -> bool:
+def match_sequential(query: SequenceGroup, variant: SequenceGroup) -> bool:
     """
     Given a pattern [query] and a variant [variant], checks if the variant matches the query pattern.
-    It is expected [variant] as well as [query] are the children of a SequentialGroup.
     """
 
     if len(query) == 0:
@@ -105,7 +112,30 @@ def match_sequential(query: List[Group], variant: List[Group]) -> bool:
     return False
 
 
-def match_parallel(query: Group, variant: Group) -> bool:
-    """Matches if a parallel group in the variant matches the query parallel group."""
+def match_parallel(query: ParallelGroup, variant: ParallelGroup) -> bool:
+    """
+    Given a pattern [query] and a variant [variant], checks if the variant matches the query pattern.
+    """
 
-    raise NotImplementedError()
+    query_multiset = Counter()
+    variant_multiset = Counter()
+
+    for node in query:
+        if type(node) is not LeafGroup:
+            raise RuntimeError(
+                "Parallel currently only works for direct matching of Leafs"
+            )
+
+        assert len(node) == 1
+        query_multiset.update(node[0])
+
+    for node in variant:
+        if type(node) is not LeafGroup:
+            raise RuntimeError(
+                "Parallel currently only works for direct matching of Leafs"
+            )
+
+        assert len(node) == 1
+        variant_multiset.update(node[0])
+
+    return query_multiset == variant_multiset
