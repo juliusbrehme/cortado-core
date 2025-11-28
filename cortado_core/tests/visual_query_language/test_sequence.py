@@ -222,4 +222,4 @@ class PrefixSuffixTest(unittest.TestCase):
         )
 
         activities = [chr(i) for i in range(ord("a"), ord("z") + 1)]
-        self.assertFalse(check_variant(variant, self.query, activities))
+        self.assertFalse(check_variant(variant, query, activities))
