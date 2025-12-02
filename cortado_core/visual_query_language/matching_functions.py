@@ -81,7 +81,7 @@ def match_choice_group_operator(
     children = list(node_query)
 
     for child in children:
-        if leaf_variant[0] == child:
+        if leaf_variant[0] == child[0]:
             return True
     return False
 
@@ -123,7 +123,7 @@ def match_no_order(
     children_query = set(list(node_query))
     children_variant = list(node_variant)
 
-    if len(children_query) != len(children_variant):
+    if children_query.list_length() != children_variant.list_length():
         return False
 
     for child in children_variant:

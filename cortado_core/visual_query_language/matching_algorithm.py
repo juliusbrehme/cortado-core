@@ -39,15 +39,18 @@ def match_sequential(query: SequenceGroup, variant: SequenceGroup) -> bool:
     """
     Given a pattern [query] and a variant [variant], checks if the variant matches the query pattern.
     """
+    # Cannot use len() because it computes not the elements of the list but the "longest path"
+    query_length = query.list_length()
+    variant_length = variant.list_length()
 
-    if len(query) == 0:
+    if query_length == 0:
         return True
 
     has_start_point = isinstance(query[0], StartGroup)
     has_end_point = isinstance(query[-1], EndGroup)
 
     # Edge case: Query only consists of a start or end point -> matches anything
-    if len(query) == 1 and (has_start_point or has_end_point):
+    if variant_length == 1 and (has_start_point or has_end_point):
         return True
 
     if has_start_point and not check_start_point(query, variant):
@@ -58,8 +61,10 @@ def match_sequential(query: SequenceGroup, variant: SequenceGroup) -> bool:
 
     # Walk the query and varianat backwards
     if has_end_point:
-        query = query[:-1]
-        variant = variant[:-1]
+        query = SequenceGroup(lst=query[::-1])
+        variant = SequenceGroup(lst=variant[::-1])
+        query_length = query.list_length()
+        variant_length = variant.list_length()
 
     candidates = []  # Possible candidates with unchecked subproblems
     subproblems = []  # Subproblems/Subtrees of possible candidate for later checking
@@ -67,7 +72,7 @@ def match_sequential(query: SequenceGroup, variant: SequenceGroup) -> bool:
     idxQuery = 0 + (has_start_point or has_end_point)
     idxVariant = 0
 
-    while idxQuery < len(query) and idxVariant < len(variant):
+    while idxQuery < query_length and idxVariant < variant_length:
         if not match(query[idxQuery], variant[idxVariant]):
             if idxQuery == 0 + (has_start_point or has_end_point):
                 idxVariant += 1
@@ -83,10 +88,11 @@ def match_sequential(query: SequenceGroup, variant: SequenceGroup) -> bool:
             idxVariant += 1
 
             # End of query reached -> all sequential parts matched -> possible candiate found
-            if idxQuery == len(query):
+            if idxQuery == query_length:
                 # Match must be from start to end -> variant must also be fully consumed
+                print(f"idxVariant: {idxVariant}, variant_length: {variant_length}")
                 if has_start_point and has_end_point:
-                    if idxVariant == len(variant):
+                    if idxVariant == variant_length:
                         candidates.append(subproblems)
                     else:
                         return False
@@ -95,7 +101,7 @@ def match_sequential(query: SequenceGroup, variant: SequenceGroup) -> bool:
                     candidates.append(subproblems)
                     subproblems = []
 
-                    idxVariant -= len(query) - has_start_point - has_end_point - 1
+                    idxVariant -= query_length - has_start_point - has_end_point - 1
                     idxQuery = 0 + (has_start_point or has_end_point)
 
                 # If start or end point is present, we are done after first match (other candidates would not be aligned to start/end)
@@ -117,25 +123,7 @@ def match_parallel(query: ParallelGroup, variant: ParallelGroup) -> bool:
     Given a pattern [query] and a variant [variant], checks if the variant matches the query pattern.
     """
 
-    query_multiset = Counter()
-    variant_multiset = Counter()
+    query_sorted = query.sort()
+    variant_sorted = variant.sort()
 
-    for node in query:
-        if type(node) is not LeafGroup:
-            raise RuntimeError(
-                "Parallel currently only works for direct matching of Leafs"
-            )
-
-        assert len(node) == 1
-        query_multiset.update(node[0])
-
-    for node in variant:
-        if type(node) is not LeafGroup:
-            raise RuntimeError(
-                "Parallel currently only works for direct matching of Leafs"
-            )
-
-        assert len(node) == 1
-        variant_multiset.update(node[0])
-
-    return query_multiset == variant_multiset
+    return match_sequential(query_sorted, variant_sorted)
