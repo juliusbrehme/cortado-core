@@ -111,8 +111,16 @@ class SimpleSequenceTest(unittest.TestCase):
         self.assertFalse(check_variant(variant, self.query, self.activities))
 
     def test_parallel(self):
-        variant = ParallelGroup(
-            lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["b"]), LeafGroup(lst=["c"])]
+        variant = SequenceGroup(
+            lst=[
+                ParallelGroup(
+                    lst=[
+                        LeafGroup(lst=["a"]),
+                        LeafGroup(lst=["b"]),
+                        LeafGroup(lst=["c"]),
+                    ]
+                )
+            ]
         )
 
         self.assertFalse(check_variant(variant, self.query, self.activities))
@@ -223,3 +231,42 @@ class PrefixSuffixTest(unittest.TestCase):
 
         activities = [chr(i) for i in range(ord("a"), ord("z") + 1)]
         self.assertFalse(check_variant(variant, query, activities))
+
+
+class MixedSequenceParallelTest(unittest.TestCase):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.query = SequenceGroup(
+            lst=[
+                LeafGroup(lst=["a"]),
+                ParallelGroup(
+                    lst=[
+                        LeafGroup(lst=["b"]),
+                        SequenceGroup(lst=[LeafGroup(lst=["c"]), LeafGroup(lst=["d"])]),
+                    ]
+                ),
+                LeafGroup(lst=["e"]),
+            ],
+        )
+
+    def test_matching(self):
+        variant = SequenceGroup(
+            lst=[
+                LeafGroup(lst=["a"]),
+                ParallelGroup(
+                    lst=[
+                        SequenceGroup(lst=[LeafGroup(lst=["c"]), LeafGroup(lst=["d"])]),
+                        LeafGroup(lst=["b"]),
+                    ]
+                ),
+                LeafGroup(lst=["e"]),
+            ]
+        )
+
+        print(self.query)
+        print("=========")
+        print(variant)
+
+        activities = [chr(i) for i in range(ord("a"), ord("z") + 1)]
+        self.assertTrue(check_variant(variant, self.query, activities))
