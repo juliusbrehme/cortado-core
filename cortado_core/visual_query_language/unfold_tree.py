@@ -17,8 +17,6 @@ from cortado_core.utils.split_graph import (
 )
 
 
-# TODO: always add start and end points ParallelGroups
-# TODO: test functionality
 def unfold_tree(tree_query: Group | List[Group]) -> List[Group]:
     """
     Turns the given query tree into a query tree to be used for filtering a variant.
