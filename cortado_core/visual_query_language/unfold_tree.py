@@ -58,7 +58,7 @@ def unfold_tree(tree_query: Group | List[Group]) -> List[Group]:
                 new_trees = add_to_tree_list(tree, new_trees)
 
         else:
-            raise Exception(
+            raise TypeError(
                 f"Unexpected type {type(child)}. Should be implemented in unfold_tree."
             )
     list_of_groups: List[Group] = []
