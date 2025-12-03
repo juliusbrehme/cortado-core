@@ -28,6 +28,9 @@ def unfold_tree(tree_query: Group | List[Group]) -> List[Group]:
     """
     if type(tree_query) is LeafGroup:
         return [tree_query]
+
+    tree_query = add_start_end_to_parallel_group(tree_query)
+
     new_trees: List[List[Group]] = []
     for child in tree_query:
         if check_leaf(child):
@@ -50,7 +53,6 @@ def unfold_tree(tree_query: Group | List[Group]) -> List[Group]:
             for tree in unfold_tree_list:
                 new_trees = add_to_tree_list(tree, new_trees)
         elif type(child) is ParallelGroup:
-            # TODO: Add Stop and Endoint (Problem: You need to take the ParallelOperator apart)
             list_of_unfolded_trees = unfold_tree(child)
             for tree in list_of_unfolded_trees:
                 new_trees = add_to_tree_list(tree, new_trees)
@@ -100,6 +102,15 @@ def add_to_tree_list(node: Group, tree_list: List[List[Group]]) -> List[List[Gro
         for tree in tree_list:
             tree.append(node)
     return tree_list
+
+
+def add_start_end_to_parallel_group(variant: Group):
+    if type(variant) is ParallelGroup:
+        for child in variant:
+            if type(child) is SequenceGroup:
+                child.append(EndGroup())
+                child.insert(0, StartGroup())
+    return variant
 
 
 def check_leaf(node: Group) -> bool:
