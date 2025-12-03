@@ -16,7 +16,7 @@ class SimpleRepitionTest(unittest.TestCase):
         self.query = SequenceGroup(
             lst=[
                 LeafGroup(lst=["a"]),
-                LoopGroup(lst=[LoopGroup(lst=["b"], count=2)]),
+                LoopGroup(lst=[LoopGroup(lst=["b"], min_count=2, max_count=2)]),
                 LeafGroup(lst=["c"]),
             ]
         )

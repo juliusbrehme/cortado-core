@@ -4,15 +4,9 @@ from cortado_core.utils.split_graph import (
     ParallelGroup,
     SequenceGroup,
     LeafGroup,
-    LoopGroup,
+    OptionalGroup,
 )
 from cortado_core.visual_query_language.query import check_variant
-
-
-# TODO: Mockup. Create real class for optional
-class OptionalGroup(LoopGroup):
-    def __init__(self, lst=None):
-        super().__init__(lst=lst, min_count=0, max_count=1)
 
 
 class SimpleOptionalTest(unittest.TestCase):

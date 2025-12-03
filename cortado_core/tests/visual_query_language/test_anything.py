@@ -64,6 +64,7 @@ class SimpleAnythingTest(unittest.TestCase):
 class SpecialAnythingTest(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.activities = [chr(i) for i in range(ord("a"), ord("z") + 1)]
 
     def test_double_use(self):
         query = SequenceGroup(

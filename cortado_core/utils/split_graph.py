@@ -439,9 +439,10 @@ class FallthroughGroup(Group):
 
 
 class LoopGroup(Group):
-    def __init__(self, count: int = 1, *args, **kwargs):
+    def __init__(self, min_count: int = None, max_count: int = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.count = count
+        self.min_count = min_count
+        self.max_count = max_count
 
     def serialize(self, include_performance=True):
         if include_performance:
