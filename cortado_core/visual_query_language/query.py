@@ -16,7 +16,7 @@ def start_query(variant: SequenceGroup, query: SequenceGroup) -> bool:
         bool: True if one variant matches the query, False otherwise.
     """
 
-    unfolded_tree_list = unfold_tree(variant)
+    unfolded_tree_list = unfold_tree(query)
     for variant_tree in unfolded_tree_list:
         if check_variant(variant_tree, query):
             return True
