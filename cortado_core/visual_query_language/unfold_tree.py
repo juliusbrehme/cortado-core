@@ -1,5 +1,4 @@
 import copy
-import itertools
 from typing import List
 
 from cortado_core.utils.split_graph import (
@@ -13,12 +12,14 @@ from cortado_core.utils.split_graph import (
     LoopGroup,
     ParallelGroup,
     OptionalGroup,
+    StartGroup,
+    EndGroup,
 )
 
 
 # TODO: always add start and end points ParallelGroups
 # TODO: test functionality
-def unfold_tree(tree_query: Group) -> List[Group]:
+def unfold_tree(tree_query: Group | List[Group]) -> List[Group]:
     """
     Turns the given query tree into a query tree to be used for filtering a variant.
     Args:
@@ -27,28 +28,31 @@ def unfold_tree(tree_query: Group) -> List[Group]:
     Returns:
         Group: A tree that is unfolded to be used for filtering.
     """
-    children = list(tree_query)
+    if type(tree_query) is LeafGroup:
+        return [tree_query]
     new_trees: List[List[Group]] = []
-
-    for child, index in enumerate(children):
+    for child in tree_query:
         if check_leaf(child):
             new_trees = add_to_tree_list(child, new_trees)
         elif type(child) is OptionalGroup:
+            # TODO: Deep copy does not work
             new_trees_copy = copy.deepcopy(new_trees)
             unfold_tree_list = unfold_tree(list(child)[0])
             for tree in unfold_tree_list:
                 new_trees = add_to_tree_list(tree, new_trees_copy)
             new_trees.extend(new_trees_copy)
         elif type(child) is LoopGroup:
-            tree = list(child)[0]
+            tree = list(child)
             unfold_tree_list = unfold_tree(tree)
-            for tree in unfold_tree_list:
-                new_trees = add_to_tree_list(tree, new_trees)
+            for _ in range(child.count):
+                for tree in unfold_tree_list:
+                    new_trees = add_to_tree_list(tree, new_trees)
         elif type(child) is SequenceGroup:
             unfold_tree_list = unfold_tree(child)
             for tree in unfold_tree_list:
                 new_trees = add_to_tree_list(tree, new_trees)
         elif type(child) is ParallelGroup:
+            # TODO: Add Stop and Endoint (Problem: You need to take the ParallelOperator apart)
             list_of_unfolded_trees = unfold_tree(child)
             for tree in list_of_unfolded_trees:
                 new_trees = add_to_tree_list(tree, new_trees)
@@ -83,6 +87,8 @@ def unfold_tree(tree_query: Group) -> List[Group]:
         for list_of_nodes in new_trees:
             list_of_groups.append(LeafGroup(lst=list_of_nodes))
         return list_of_groups
+    elif type(tree_query) is list:
+        return tree_query
     else:
         raise Exception(
             f"Unexpected input type {type(tree_query)}. This should never happen."
@@ -92,8 +98,9 @@ def unfold_tree(tree_query: Group) -> List[Group]:
 def add_to_tree_list(node: Group, tree_list: List[List[Group]]) -> List[List[Group]]:
     if len(tree_list) == 0:
         tree_list.append([node])
-    for tree in tree_list:
-        tree.append(node)
+    else:
+        for tree in tree_list:
+            tree.append(node)
     return tree_list
 
 
@@ -104,6 +111,8 @@ def check_leaf(node: Group) -> bool:
         or type(node) is WildcardGroup
         or type(node) is AnythingGroup
         or type(node) is ChoiceGroup
+        or type(node) is StartGroup
+        or type(node) is EndGroup
     ):
         return True
     else:
