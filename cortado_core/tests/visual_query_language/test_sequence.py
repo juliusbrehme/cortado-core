@@ -6,25 +6,25 @@ from cortado_core.utils.split_graph import (
     StartGroup,
     EndGroup,
 )
-from cortado_core.visual_query_language.query import check_variant
+from cortado_core.visual_query_language.query import create_query_instance
 
 
 class SimpleSequenceTest(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.query = SequenceGroup(
-            lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["b"]), LeafGroup(lst=["c"])]
+        self.query = create_query_instance(
+            SequenceGroup(
+                lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["b"]), LeafGroup(lst=["c"])]
+            )
         )
-
-        self.activities = [chr(i) for i in range(ord("a"), ord("z") + 1)]
 
     def test_exact_match(self):
         variant = SequenceGroup(
             lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["b"]), LeafGroup(lst=["c"])]
         )
 
-        self.assertTrue(check_variant(variant, self.query, self.activities))
+        self.assertTrue(self.query.match(variant))
 
     def test_with_prefix(self):
         variant = SequenceGroup(
@@ -36,7 +36,7 @@ class SimpleSequenceTest(unittest.TestCase):
             ]
         )
 
-        self.assertTrue(check_variant(variant, self.query, self.activities))
+        self.assertTrue(self.query.match(variant))
 
     def test_with_suffix(self):
         variant = SequenceGroup(
@@ -48,7 +48,7 @@ class SimpleSequenceTest(unittest.TestCase):
             ]
         )
 
-        self.assertTrue(check_variant(variant, self.query, self.activities))
+        self.assertTrue(self.query.match(variant))
 
     def test_within(self):
         variant = SequenceGroup(
@@ -61,14 +61,14 @@ class SimpleSequenceTest(unittest.TestCase):
             ]
         )
 
-        self.assertTrue(check_variant(variant, self.query, self.activities))
+        self.assertTrue(self.query.match(variant))
 
     def test_non_matching(self):
         variant = SequenceGroup(
             lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["x"]), LeafGroup(lst=["c"])]
         )
 
-        self.assertFalse(check_variant(variant, self.query, self.activities))
+        self.assertFalse(self.query.match(variant))
 
     def test_repeating_match(self):
         variant = SequenceGroup(
@@ -85,7 +85,7 @@ class SimpleSequenceTest(unittest.TestCase):
             ]
         )
 
-        self.assertTrue(check_variant(variant, self.query, self.activities))
+        self.assertTrue(self.query.match(variant))
 
     def test_repeating_non_matching(self):
         variant = SequenceGroup(
@@ -101,14 +101,14 @@ class SimpleSequenceTest(unittest.TestCase):
             ]
         )
 
-        self.assertFalse(check_variant(variant, self.query, self.activities))
+        self.assertFalse(self.query.match(variant))
 
     def wrongOrder(self):
         variant = SequenceGroup(
             lst=[LeafGroup(lst=["c"]), LeafGroup(lst=["b"]), LeafGroup(lst=["a"])]
         )
 
-        self.assertFalse(check_variant(variant, self.query, self.activities))
+        self.assertFalse(self.query.match(variant))
 
     def test_parallel(self):
         variant = SequenceGroup(
@@ -123,7 +123,7 @@ class SimpleSequenceTest(unittest.TestCase):
             ]
         )
 
-        self.assertFalse(check_variant(variant, self.query, self.activities))
+        self.assertFalse(self.query.match(variant))
 
     def test_mixed(self):
         variant = SequenceGroup(
@@ -139,23 +139,25 @@ class SimpleSequenceTest(unittest.TestCase):
             ]
         )
 
-        self.assertFalse(check_variant(variant, self.query, self.activities))
+        self.assertFalse(self.query.match(variant))
 
 
 class PrefixSuffixTest(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.query = SequenceGroup(
-            lst=[
-                LeafGroup(lst=["a"]),
-                LeafGroup(lst=["b"]),
-                LeafGroup(lst=["c"]),
-                ParallelGroup(lst=[LeafGroup(lst=["d"]), LeafGroup(lst=["e"])]),
-                LeafGroup(lst=["a"]),
-                LeafGroup(lst=["b"]),
-                LeafGroup(lst=["c"]),
-            ],
+        self.query = create_query_instance(
+            SequenceGroup(
+                lst=[
+                    LeafGroup(lst=["a"]),
+                    LeafGroup(lst=["b"]),
+                    LeafGroup(lst=["c"]),
+                    ParallelGroup(lst=[LeafGroup(lst=["d"]), LeafGroup(lst=["e"])]),
+                    LeafGroup(lst=["a"]),
+                    LeafGroup(lst=["b"]),
+                    LeafGroup(lst=["c"]),
+                ],
+            )
         )
 
     def test_prefix(self):
@@ -176,7 +178,7 @@ class PrefixSuffixTest(unittest.TestCase):
         )
 
         activities = [chr(i) for i in range(ord("a"), ord("z") + 1)]
-        self.assertTrue(check_variant(variant, self.query, activities))
+        self.assertTrue(self.query.match(variant))
 
     def test_suffix(self):
         variant = SequenceGroup(
@@ -196,21 +198,23 @@ class PrefixSuffixTest(unittest.TestCase):
         )
 
         activities = [chr(i) for i in range(ord("a"), ord("z") + 1)]
-        self.assertTrue(check_variant(variant, self.query, activities))
+        self.assertTrue(self.query.match(variant))
 
     def test_complete(self):
-        query = SequenceGroup(
-            lst=[
-                StartGroup(),
-                LeafGroup(lst=["a"]),
-                LeafGroup(lst=["b"]),
-                LeafGroup(lst=["c"]),
-                ParallelGroup(lst=[LeafGroup(lst=["d"]), LeafGroup(lst=["e"])]),
-                LeafGroup(lst=["a"]),
-                LeafGroup(lst=["b"]),
-                LeafGroup(lst=["c"]),
-                EndGroup(),
-            ],
+        query = create_query_instance(
+            SequenceGroup(
+                lst=[
+                    StartGroup(),
+                    LeafGroup(lst=["a"]),
+                    LeafGroup(lst=["b"]),
+                    LeafGroup(lst=["c"]),
+                    ParallelGroup(lst=[LeafGroup(lst=["d"]), LeafGroup(lst=["e"])]),
+                    LeafGroup(lst=["a"]),
+                    LeafGroup(lst=["b"]),
+                    LeafGroup(lst=["c"]),
+                    EndGroup(),
+                ],
+            )
         )
 
         variant = SequenceGroup(
@@ -230,24 +234,28 @@ class PrefixSuffixTest(unittest.TestCase):
         )
 
         activities = [chr(i) for i in range(ord("a"), ord("z") + 1)]
-        self.assertFalse(check_variant(variant, query, activities))
+        self.assertFalse(query.match(variant))
 
 
 class MixedSequenceParallelTest(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.query = SequenceGroup(
-            lst=[
-                LeafGroup(lst=["a"]),
-                ParallelGroup(
-                    lst=[
-                        LeafGroup(lst=["b"]),
-                        SequenceGroup(lst=[LeafGroup(lst=["c"]), LeafGroup(lst=["d"])]),
-                    ]
-                ),
-                LeafGroup(lst=["e"]),
-            ],
+        self.query = create_query_instance(
+            SequenceGroup(
+                lst=[
+                    LeafGroup(lst=["a"]),
+                    ParallelGroup(
+                        lst=[
+                            LeafGroup(lst=["b"]),
+                            SequenceGroup(
+                                lst=[LeafGroup(lst=["c"]), LeafGroup(lst=["d"])]
+                            ),
+                        ]
+                    ),
+                    LeafGroup(lst=["e"]),
+                ],
+            )
         )
 
     def test_matching(self):
@@ -264,9 +272,5 @@ class MixedSequenceParallelTest(unittest.TestCase):
             ]
         )
 
-        print(self.query)
-        print("=========")
-        print(variant)
-
         activities = [chr(i) for i in range(ord("a"), ord("z") + 1)]
-        self.assertTrue(check_variant(variant, self.query, activities))
+        self.assertTrue(self.query.match(variant))

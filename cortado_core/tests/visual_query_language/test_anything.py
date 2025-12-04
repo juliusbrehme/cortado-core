@@ -6,29 +6,30 @@ from cortado_core.utils.split_graph import (
     ParallelGroup,
     AnythingGroup,
 )
-from cortado_core.visual_query_language.query import check_variant
+from cortado_core.visual_query_language.query import create_query_instance
 
 
 class SimpleAnythingTest(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.query = SequenceGroup(
-            lst=[LeafGroup(lst=["a"]), AnythingGroup(), LeafGroup(lst=["b"])]
+        self.query = create_query_instance(
+            SequenceGroup(
+                lst=[LeafGroup(lst=["a"]), AnythingGroup(), LeafGroup(lst=["b"])]
+            )
         )
-        self.activities = [chr(i) for i in range(ord("a"), ord("z") + 1)]
 
     def test_nothing_in_between(self):
         variant = SequenceGroup(lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["b"])])
 
-        self.assertFalse(check_variant(variant, self.query, self.activities))
+        self.assertFalse(self.query.match(variant))
 
     def test_single_element_in_between(self):
         variant = SequenceGroup(
             lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["x"]), LeafGroup(lst=["b"])]
         )
 
-        self.assertTrue(check_variant(variant, self.query, self.activities))
+        self.assertTrue(self.query.match(variant))
 
     def test_multiple_elements_in_between(self):
         variant = SequenceGroup(
@@ -40,7 +41,7 @@ class SimpleAnythingTest(unittest.TestCase):
             ]
         )
 
-        self.assertTrue(check_variant(variant, self.query, self.activities))
+        self.assertTrue(self.query.match(variant))
 
     def test_parallel_elements_in_between(self):
         variant = SequenceGroup(
@@ -51,14 +52,14 @@ class SimpleAnythingTest(unittest.TestCase):
             ]
         )
 
-        self.assertTrue(check_variant(variant, self.query, self.activities))
+        self.assertTrue(self.query.match(variant))
 
     def test_non_matching(self):
         variant = SequenceGroup(
             lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["x"]), LeafGroup(lst=["c"])]
         )
 
-        self.assertFalse(check_variant(variant, self.query, self.activities))
+        self.assertFalse(self.query.match(variant))
 
 
 class SpecialAnythingTest(unittest.TestCase):
@@ -67,13 +68,15 @@ class SpecialAnythingTest(unittest.TestCase):
         self.activities = [chr(i) for i in range(ord("a"), ord("z") + 1)]
 
     def test_double_use(self):
-        query = SequenceGroup(
-            lst=[
-                LeafGroup(lst=["a"]),
-                AnythingGroup(),
-                AnythingGroup(),
-                LeafGroup(lst=["b"]),
-            ]
+        query = create_query_instance(
+            SequenceGroup(
+                lst=[
+                    LeafGroup(lst=["a"]),
+                    AnythingGroup(),
+                    AnythingGroup(),
+                    LeafGroup(lst=["b"]),
+                ]
+            )
         )
 
         variant = SequenceGroup(
@@ -88,23 +91,25 @@ class SpecialAnythingTest(unittest.TestCase):
             ]
         )
 
-        self.assertTrue(check_variant(variant, query, self.activities))
+        self.assertTrue(query.match(variant))
 
         variant = SequenceGroup(
             lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["x"]), LeafGroup(lst=["b"])]
         )
 
-        self.assertFalse(check_variant(variant, query, self.activities))
+        self.assertFalse(query.match(variant))
 
     def test_two_anythings(self):
-        query = SequenceGroup(
-            lst=[
-                LeafGroup(lst=["a"]),
-                AnythingGroup(),
-                LeafGroup(lst=["b"]),
-                AnythingGroup(),
-                LeafGroup(lst=["c"]),
-            ]
+        query = create_query_instance(
+            SequenceGroup(
+                lst=[
+                    LeafGroup(lst=["a"]),
+                    AnythingGroup(),
+                    LeafGroup(lst=["b"]),
+                    AnythingGroup(),
+                    LeafGroup(lst=["c"]),
+                ]
+            )
         )
 
         variant = SequenceGroup(
@@ -117,7 +122,7 @@ class SpecialAnythingTest(unittest.TestCase):
             ]
         )
 
-        self.assertTrue(check_variant(variant, query, self.activities))
+        self.assertTrue(query.match(variant))
 
         variant = SequenceGroup(
             lst=[
@@ -130,7 +135,7 @@ class SpecialAnythingTest(unittest.TestCase):
             ]
         )
 
-        self.assertTrue(check_variant(variant, query, self.activities))
+        self.assertTrue(query.match(variant))
 
         variant = SequenceGroup(
             lst=[
@@ -141,4 +146,4 @@ class SpecialAnythingTest(unittest.TestCase):
             ]
         )
 
-        self.assertFalse(check_variant(variant, query, self.activities))
+        self.assertFalse(query.match(variant))
