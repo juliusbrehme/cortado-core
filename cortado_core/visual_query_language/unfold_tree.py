@@ -26,7 +26,7 @@ def unfold_tree(tree_query: Group | List[Group]) -> List[Group]:
     Returns:
         Group: A tree that is unfolded to be used for filtering.
     """
-    if type(tree_query) is LeafGroup:
+    if check_leaf(tree_query):
         return [tree_query]
 
     tree_query = add_start_end_to_parallel_group(tree_query)
@@ -36,26 +36,21 @@ def unfold_tree(tree_query: Group | List[Group]) -> List[Group]:
         if check_leaf(child):
             new_trees = add_to_tree_list(child, new_trees)
         elif type(child) is OptionalGroup:
-            # TODO: Deep copy does not work
             new_trees_copy = copy.deepcopy(new_trees)
-            unfold_tree_list = unfold_tree(list(child)[0])
+            unfold_tree_list = unfold_tree(child[0])
             for tree in unfold_tree_list:
-                new_trees = add_to_tree_list(tree, new_trees_copy)
+                new_trees = add_to_tree_list(tree, new_trees)
             new_trees.extend(new_trees_copy)
         elif type(child) is LoopGroup:
-            tree = list(child)
-            unfold_tree_list = unfold_tree(tree)
-            for _ in range(child.count):
-                for tree in unfold_tree_list:
-                    new_trees = add_to_tree_list(tree, new_trees)
+            unfold_tree_list = unfold_tree(child[0])
+            for _ in range(child.max_count):
+                new_trees = merge_and_flatten(new_trees, unfold_tree_list)
         elif type(child) is SequenceGroup:
             unfold_tree_list = unfold_tree(child)
-            for tree in unfold_tree_list:
-                new_trees = add_to_tree_list(tree, new_trees)
+            new_trees = merge_and_flatten(new_trees, unfold_tree_list)
         elif type(child) is ParallelGroup:
             list_of_unfolded_trees = unfold_tree(child)
-            for tree in list_of_unfolded_trees:
-                new_trees = add_to_tree_list(tree, new_trees)
+            new_trees = merge_and_flatten(new_trees, list_of_unfolded_trees)
 
         else:
             raise TypeError(
@@ -70,22 +65,6 @@ def unfold_tree(tree_query: Group | List[Group]) -> List[Group]:
     elif type(tree_query) is SequenceGroup:
         for list_of_nodes in new_trees:
             list_of_groups.append(SequenceGroup(lst=list_of_nodes))
-        return list_of_groups
-    elif type(tree_query) is WildcardGroup:
-        for list_of_nodes in new_trees:
-            list_of_groups.append(WildcardGroup(lst=list_of_nodes))
-        return list_of_groups
-    elif type(tree_query) is AnythingGroup:
-        for list_of_nodes in new_trees:
-            list_of_groups.append(AnythingGroup(lst=list_of_nodes))
-        return list_of_groups
-    elif type(tree_query) is FallthroughGroup:
-        for list_of_nodes in new_trees:
-            list_of_groups.append(FallthroughGroup(lst=list_of_nodes))
-        return list_of_groups
-    elif type(tree_query) is LeafGroup:
-        for list_of_nodes in new_trees:
-            list_of_groups.append(LeafGroup(lst=list_of_nodes))
         return list_of_groups
     elif type(tree_query) is list:
         return tree_query
@@ -111,6 +90,21 @@ def add_start_end_to_parallel_group(variant: Group):
                 child.append(EndGroup())
                 child.insert(0, StartGroup())
     return variant
+
+
+def merge_and_flatten(list1: List[Group], list2: List[Group]) -> List[Group]:
+    result: List[Group] = []
+    if len(list1) == 0:
+        for item2 in list2:
+            result.append([item2])
+        return result
+    for item1 in list1:
+        for item2 in list2:
+            # wrapped in [], because else the Operator is lost because Group inherits from list
+            combine = item1 + [item2]
+
+            result.append(combine)
+    return result
 
 
 def check_leaf(node: Group) -> bool:
