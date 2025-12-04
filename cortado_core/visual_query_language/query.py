@@ -1,27 +1,9 @@
 from typing import List
 
 from cortado_core.utils.split_graph import SequenceGroup
-from cortado_core.visual_query_language.matching_algorithm import match_sequential
+# from cortado_core.visual_query_language.matching_algorithm import match_sequential
+from cortado_core.visual_query_language.dfs_matching import match_sequential
 from cortado_core.visual_query_language.unfold_tree import unfold_tree
-
-
-def start_query(variant: SequenceGroup, query: SequenceGroup) -> bool:
-    """
-    Starting point of the query.
-     Args:
-        variant (Group): The variant to be checked.
-        query (Group): The query pattern.
-    First unfolds the tree and then checks the variants.
-    Returns:
-        bool: True if one variant matches the query, False otherwise.
-    """
-
-    unfolded_tree_list = unfold_tree(query)
-    for variant_tree in unfolded_tree_list:
-        if check_variant(variant_tree, query):
-            return True
-    return False
-
 
 def check_variant(
     variant: SequenceGroup, query: SequenceGroup, activities: List[str] = []
@@ -37,5 +19,13 @@ def check_variant(
     Returns:
         bool: True if the variant matches the query, False otherwise.
     """
-
-    return match_sequential(query, variant)
+    # Unfold the query to handle OptionalGroup and LoopGroup
+    # This creates multiple query variants (e.g., with and without optional parts)
+    unfolded_queries = unfold_tree(query)
+    
+    # Check if ANY unfolded query matches the variant
+    for unfolded_query in unfolded_queries:
+        if match_sequential(unfolded_query, variant):
+            return True
+    
+    return False
