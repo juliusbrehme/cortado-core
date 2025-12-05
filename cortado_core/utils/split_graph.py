@@ -81,16 +81,43 @@ class Group(list):
             return FallthroughGroup(
                 lst=[Group.deserialize(group) for group in serialized["fallthrough"]]
             )
+        
+        # Mapping from Leaf with ?Wildcard? to WildcardGroup
+        if "leaf" in serialized and serialized["leaf"][0] == "?Wildcard?":
+            return WildcardGroup(lst=serialized["leaf"])
 
         if "leaf" in serialized and isinstance(serialized["leaf"], List):
             return LeafGroup(lst=serialized["leaf"])
 
-        if "loop" in serialized and isinstance(serialized["loop"].List):
-            return LoopGroup(lst=serialized["leaf"])
+        if "loop" in serialized and isinstance(serialized["loop"], List):
+            return LoopGroup(lst=serialized["loop"])
 
         if "skip" in serialized and isinstance(serialized["skip"], List):
             return SkipGroup(
                 lst=[Group.deserialize(group) for group in serialized["skip"]]
+            )
+        
+        if "start" in serialized:
+            return StartGroup(lst=[])
+        
+        if "end" in serialized:
+            return EndGroup(lst=[])
+        
+
+        #TODO: fix optional and repeatable serialization
+        
+        if "operator" in serialized and serialized["optional"]:
+            return OptionalGroup(
+                lst=[Group.deserialize(group) for group in serialized["operator"]]
+            )
+        
+        if "operator" in serialized and serialized["repeatable"]:
+            min_count = 1
+            max_count = serialized.get("repeat_count", None)
+            return LoopGroup(
+                lst=[Group.deserialize(group) for group in serialized["operator"]],
+                min_count=min_count,
+                max_count=max_count,
             )
 
         return SequenceGroup(lst=[])
