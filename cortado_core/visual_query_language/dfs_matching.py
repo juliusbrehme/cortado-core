@@ -235,6 +235,9 @@ def match_parallel(query: ParallelGroup, variant: ParallelGroup) -> bool:
     This ensures exact structural match (no extra branches in variant).
     Order doesn't matter.
     
+    Uses backtracking DFS to correctly handle overlapping ChoiceGroups where
+    a single variant branch could potentially match multiple query branches.
+    
     Args:
         query: ParallelGroup from the query
         variant: ParallelGroup from the variant
@@ -249,27 +252,39 @@ def match_parallel(query: ParallelGroup, variant: ParallelGroup) -> bool:
     if len(query_branches) != len(variant_branches):
         return False
     
-    # Track which variant branches have been used
-    used = [False] * len(variant_branches)
-    
-    # For each query branch, find a matching variant branch
-    for q_branch in query_branches:
-        found_match = False
+    # Use backtracking to find a valid assignment
+    def backtrack(q_idx: int, used: set) -> bool:
+        """
+        Recursively try to match remaining query branches to unused variant branches.
         
-        for i, v_branch in enumerate(variant_branches):
-            if used[i]:
-                continue  # This variant branch already matched another query branch
-            
-            if _branches_match(q_branch, v_branch):
-                used[i] = True
-                found_match = True
-                break
+        Args:
+            q_idx: Current query branch index
+            used: Set of variant branch indices already assigned
         
-        if not found_match:
-            # This query branch has no matching variant branch
-            return False
+        Returns:
+            True if remaining query branches can be matched to remaining variant branches
+        """
+        # Base case: all query branches have been matched
+        if q_idx == len(query_branches):
+            # All variant branches should be used (bijective match)
+            return len(used) == len(variant_branches)
+        
+        q_branch = query_branches[q_idx]
+        
+        # Try matching this query branch against each unused variant branch
+        for v_idx in range(len(variant_branches)):
+            if v_idx not in used:
+                if _branches_match(q_branch, variant_branches[v_idx]):
+                    # Found a match, mark it as used and continue
+                    used.add(v_idx)
+                    if backtrack(q_idx + 1, used):
+                        return True
+                    # Backtrack: remove from used set and try next variant branch
+                    used.remove(v_idx)
+        
+        return False
     
-    return True
+    return backtrack(0, set())
 
 
 def _branches_match(q_branch: Group, v_branch: Group) -> bool:
