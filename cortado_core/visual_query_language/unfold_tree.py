@@ -31,6 +31,10 @@ def unfold_tree(tree_query: Group | List[Group]) -> List[Group]:
 
     tree_query = add_start_end_to_parallel_group(tree_query)
 
+    # Determine parent type for flattening same-type nesting
+    parent_type = (
+        type(tree_query) if type(tree_query) in (SequenceGroup, ParallelGroup) else None
+    )
     new_trees: List[List[Group]] = []
     for child in tree_query:
         if check_leaf(child):
@@ -38,19 +42,23 @@ def unfold_tree(tree_query: Group | List[Group]) -> List[Group]:
         elif type(child) is OptionalGroup:
             new_trees_copy = copy.deepcopy(new_trees)
             unfold_tree_list = unfold_tree(child[0])
-            for tree in unfold_tree_list:
-                new_trees = add_to_tree_list(tree, new_trees)
+            # for tree in unfold_tree_list:
+            #     new_trees = add_to_tree_list(tree, new_trees)
+            # Use merge_and_flatten to flatten same-type nesting (e.g., SequenceGroup inside SequenceGroup)
+            new_trees = merge_and_flatten(new_trees, unfold_tree_list, parent_type)
             new_trees.extend(new_trees_copy)
         elif type(child) is LoopGroup:
             unfold_tree_list = unfold_tree(child[0])
             for _ in range(child.max_count):
-                new_trees = merge_and_flatten(new_trees, unfold_tree_list)
+                new_trees = merge_and_flatten(new_trees, unfold_tree_list, parent_type)
         elif type(child) is SequenceGroup:
             unfold_tree_list = unfold_tree(child)
-            new_trees = merge_and_flatten(new_trees, unfold_tree_list)
+            new_trees = merge_and_flatten(new_trees, unfold_tree_list, parent_type)
         elif type(child) is ParallelGroup:
             list_of_unfolded_trees = unfold_tree(child)
-            new_trees = merge_and_flatten(new_trees, list_of_unfolded_trees)
+            new_trees = merge_and_flatten(
+                new_trees, list_of_unfolded_trees, parent_type
+            )
 
         else:
             raise TypeError(
@@ -92,16 +100,34 @@ def add_start_end_to_parallel_group(variant: Group):
     return variant
 
 
-def merge_and_flatten(list1: List[Group], list2: List[Group]) -> List[Group]:
+def merge_and_flatten(
+    list1: List[Group], list2: List[Group], parent_type: type = None
+) -> List[Group]:
+    """
+    Merge two lists of tree components, flattening same-type nesting.
+
+    Args:
+        list1: Current list of tree components being built
+        list2: New components to merge in
+        parent_type: The type of the parent group (SequenceGroup or ParallelGroup).
+                     If item2 matches this type, its contents are flattened.
+    """
     result: List[Group] = []
     if len(list1) == 0:
         for item2 in list2:
-            result.append([item2])
+            # Flatten if item2 is the same type as parent
+            if parent_type is not None and type(item2) is parent_type:
+                result.append(list(item2))
+            else:
+                result.append([item2])
         return result
     for item1 in list1:
         for item2 in list2:
-            # wrapped in [], because else the Operator is lost because Group inherits from list
-            combine = item1 + [item2]
+            # Flatten if item2 is the same type as parent
+            if parent_type is not None and type(item2) is parent_type:
+                combine = item1 + list(item2)
+            else:
+                combine = item1 + [item2]
 
             result.append(combine)
     return result

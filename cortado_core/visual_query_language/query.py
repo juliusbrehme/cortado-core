@@ -2,7 +2,15 @@ from typing import List
 
 from cortado_core.utils.split_graph import SequenceGroup
 from cortado_core.visual_query_language.matching_algorithm import match_sequential
+from cortado_core.visual_query_language.dfs_matching import match_sequential_dfs
 from cortado_core.visual_query_language.unfold_tree import unfold_tree
+from enum import Enum
+
+
+class QueryType(Enum):
+    BFS = 1
+    DFS = 2
+    RELAXED_NG = 3
 
 
 class PatternQuery:
@@ -12,6 +20,31 @@ class PatternQuery:
 
     def match(self, variant: SequenceGroup) -> bool:
         raise NotImplementedError("Subclasses should implement this!")
+
+
+class DFSCompareQuery(PatternQuery):
+    def __init__(self, query: SequenceGroup):
+        self.unfolded_trees = unfold_tree(query)
+
+    def match(self, variant: SequenceGroup) -> bool:
+        for query in self.unfolded_trees:
+            if self.__check_variant(variant, query):
+                return True
+        return False
+
+    def __check_variant(self, variant: SequenceGroup, query: SequenceGroup) -> bool:
+        """
+        Check if the given variant matches the query pattern.
+
+        Args:
+            variant (Group): The variant to be checked.
+            query (Group): The query pattern.
+
+        Returns:
+            bool: True if the variant matches the query, False otherwise.
+        """
+
+        return match_sequential_dfs(query, variant)
 
 
 class CustomTreeCompareQuery(PatternQuery):
@@ -39,8 +72,14 @@ class CustomTreeCompareQuery(PatternQuery):
         return match_sequential(query, variant)
 
 
-def create_query_instance(query: SequenceGroup) -> PatternQuery:
+def create_query_instance(
+    query: SequenceGroup, query_type: QueryType = QueryType.DFS
+) -> PatternQuery:
     """
     Create an instance of a PatternQuery from a given query tree.
     """
+    if query_type == QueryType.DFS:
+        return DFSCompareQuery(query)
+    elif query_type == QueryType.RELAXED_NG:
+        pass
     return CustomTreeCompareQuery(query)
