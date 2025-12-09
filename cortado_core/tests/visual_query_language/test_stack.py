@@ -6,43 +6,43 @@ from cortado_core.utils.split_graph import (
     LeafGroup,
     ChoiceGroup,
 )
-from cortado_core.visual_query_language.query import check_variant
+from cortado_core.visual_query_language.query import create_query_instance
 
 
 class SimpleStackTest(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.query = SequenceGroup(
-            lst=[
-                LeafGroup(lst=["a"]),
-                ChoiceGroup(lst=[LeafGroup(lst=["b"]), LeafGroup(lst=["c"])]),
-                LeafGroup(lst=["d"]),
-            ]
+        self.query = create_query_instance(
+            SequenceGroup(
+                lst=[
+                    LeafGroup(lst=["a"]),
+                    ChoiceGroup(lst=[LeafGroup(lst=["b"]), LeafGroup(lst=["c"])]),
+                    LeafGroup(lst=["d"]),
+                ]
+            )
         )
-
-        self.activities = [chr(i) for i in range(ord("a"), ord("z") + 1)]
 
     def test_choice1(self):
         variant = SequenceGroup(
             lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["b"]), LeafGroup(lst=["d"])]
         )
 
-        self.assertTrue(check_variant(variant, self.query, self.activities))
+        self.assertTrue(self.query.match(variant))
 
     def test_choice2(self):
         variant = SequenceGroup(
             lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["c"]), LeafGroup(lst=["d"])]
         )
 
-        self.assertTrue(check_variant(variant, self.query, self.activities))
+        self.assertTrue(self.query.match(variant))
 
     def test_non_matching(self):
         variant = SequenceGroup(
             lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["e"]), LeafGroup(lst=["d"])]
         )
 
-        self.assertFalse(check_variant(variant, self.query, self.activities))
+        self.assertFalse(self.query.match(variant))
 
     def test_additional_elements(self):
         variant = SequenceGroup(
@@ -55,4 +55,4 @@ class SimpleStackTest(unittest.TestCase):
             ]
         )
 
-        self.assertTrue(check_variant(variant, self.query, self.activities))
+        self.assertTrue(self.query.match(variant))

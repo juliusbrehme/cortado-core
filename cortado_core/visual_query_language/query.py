@@ -5,37 +5,42 @@ from cortado_core.visual_query_language.matching_algorithm import match_sequenti
 from cortado_core.visual_query_language.unfold_tree import unfold_tree
 
 
-def start_query(variant: SequenceGroup, query: SequenceGroup) -> bool:
+class PatternQuery:
     """
-    Starting point of the query.
-     Args:
-        variant (Group): The variant to be checked.
-        query (Group): The query pattern.
-    First unfolds the tree and then checks the variants.
-    Returns:
-        bool: True if one variant matches the query, False otherwise.
+    Base class for pattern queries.
     """
 
-    unfolded_tree_list = unfold_tree(query)
-    for variant_tree in unfolded_tree_list:
-        if check_variant(variant_tree, query):
-            return True
-    return False
+    def match(self, variant: SequenceGroup) -> bool:
+        raise NotImplementedError("Subclasses should implement this!")
 
 
-def check_variant(
-    variant: SequenceGroup, query: SequenceGroup, activities: List[str] = []
-) -> bool:
+class CustomTreeCompareQuery(PatternQuery):
+    def __init__(self, query: SequenceGroup):
+        self.unfolded_trees = unfold_tree(query)
+
+    def match(self, variant: SequenceGroup) -> bool:
+        for query in self.unfolded_trees:
+            if self.__check_variant(variant, query):
+                return True
+        return False
+
+    def __check_variant(self, variant: SequenceGroup, query: SequenceGroup) -> bool:
+        """
+        Check if the given variant matches the query pattern.
+
+        Args:
+            variant (Group): The variant to be checked.
+            query (Group): The query pattern.
+
+        Returns:
+            bool: True if the variant matches the query, False otherwise.
+        """
+
+        return match_sequential(query, variant)
+
+
+def create_query_instance(query: SequenceGroup) -> PatternQuery:
     """
-    Check if the given variant matches the query pattern.
-
-    Args:
-        variant (Group): The variant to be checked.
-        query (Group): The query pattern.
-        activities (List[str]): List of all possible activites in the variant.
-
-    Returns:
-        bool: True if the variant matches the query, False otherwise.
+    Create an instance of a PatternQuery from a given query tree.
     """
-
-    return match_sequential(query, variant)
+    return CustomTreeCompareQuery(query)

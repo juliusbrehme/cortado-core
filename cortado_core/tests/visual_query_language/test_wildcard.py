@@ -6,31 +6,31 @@ from cortado_core.utils.split_graph import (
     LeafGroup,
     WildcardGroup,
 )
-from cortado_core.visual_query_language.query import check_variant
+from cortado_core.visual_query_language.query import create_query_instance
 
 
 class SimpleWildcardTest(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.query = SequenceGroup(
-            lst=[LeafGroup(lst=["a"]), WildcardGroup(), LeafGroup(lst=["b"])]
+        self.query = create_query_instance(
+            SequenceGroup(
+                lst=[LeafGroup(lst=["a"]), WildcardGroup(), LeafGroup(lst=["b"])]
+            )
         )
-
-        self.activities = [chr(i) for i in range(ord("a"), ord("z") + 1)]
 
     def test_wildcard_matching(self):
         variant = SequenceGroup(
             lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["x"]), LeafGroup(lst=["b"])]
         )
 
-        self.assertTrue(check_variant(variant, self.query, self.activities))
+        self.assertTrue(self.query.match(variant))
 
         variant = SequenceGroup(
             lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["y"]), LeafGroup(lst=["b"])]
         )
 
-        self.assertTrue(check_variant(variant, self.query, self.activities))
+        self.assertTrue(self.query.match(variant))
 
     def test_wildcard_with_multiple_elements(self):
         variant = SequenceGroup(
@@ -42,7 +42,7 @@ class SimpleWildcardTest(unittest.TestCase):
             ]
         )
 
-        self.assertFalse(check_variant(variant, self.query, self.activities))
+        self.assertFalse(self.query.match(variant))
 
     def test_wildcard_parallel(self):
         variant = SequenceGroup(
@@ -53,4 +53,4 @@ class SimpleWildcardTest(unittest.TestCase):
             ]
         )
 
-        self.assertFalse(check_variant(variant, self.query, self.activities))
+        self.assertFalse(self.query.match(variant))
