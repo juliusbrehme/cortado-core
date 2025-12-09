@@ -89,7 +89,7 @@ class Group(list):
             repeat_count = serialized.get("repeat_count", None)
             return LoopGroup(
                 lst=[Group.deserialize(group) for group in serialized["loop"]],
-                min_count=1,
+                min_count=repeat_count,
                 max_count=repeat_count,
             )
 
