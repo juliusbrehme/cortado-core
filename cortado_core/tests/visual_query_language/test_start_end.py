@@ -6,21 +6,18 @@ from cortado_core.utils.split_graph import (
     StartGroup,
     EndGroup,
 )
-from cortado_core.visual_query_language.query import check_variant
+from cortado_core.visual_query_language.query import create_query_instance
 
 
 class StartEndTest(unittest.TestCase):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self.activities = [chr(i) for i in range(ord("a"), ord("z") + 1)]
-
     def test_start(self):
-        query = SequenceGroup(
-            lst=[
-                StartGroup(),
-                LeafGroup(lst=["a"]),
-            ]
+        query = create_query_instance(
+            SequenceGroup(
+                lst=[
+                    StartGroup(),
+                    LeafGroup(lst=["a"]),
+                ]
+            )
         )
 
         variant = SequenceGroup(
@@ -30,7 +27,7 @@ class StartEndTest(unittest.TestCase):
             ]
         )
 
-        self.assertTrue(check_variant(variant, query, self.activities))
+        self.assertTrue(query.match(variant))
 
         variant = SequenceGroup(
             lst=[
@@ -39,14 +36,16 @@ class StartEndTest(unittest.TestCase):
             ]
         )
 
-        self.assertFalse(check_variant(variant, query, self.activities))
+        self.assertFalse(query.match(variant))
 
     def test_end(self):
-        query = SequenceGroup(
-            lst=[
-                LeafGroup(lst=["a"]),
-                EndGroup(),
-            ]
+        query = create_query_instance(
+            SequenceGroup(
+                lst=[
+                    LeafGroup(lst=["a"]),
+                    EndGroup(),
+                ]
+            )
         )
 
         variant = SequenceGroup(
@@ -56,7 +55,7 @@ class StartEndTest(unittest.TestCase):
             ]
         )
 
-        self.assertFalse(check_variant(variant, query, self.activities))
+        self.assertFalse(query.match(variant))
 
         variant = SequenceGroup(
             lst=[
@@ -65,15 +64,17 @@ class StartEndTest(unittest.TestCase):
             ]
         )
 
-        self.assertTrue(check_variant(variant, query, self.activities))
+        self.assertTrue(query.match(variant))
 
     def test_start_end(self):
-        query = SequenceGroup(
-            lst=[
-                StartGroup(),
-                LeafGroup(lst=["a"]),
-                EndGroup(),
-            ]
+        query = create_query_instance(
+            SequenceGroup(
+                lst=[
+                    StartGroup(),
+                    LeafGroup(lst=["a"]),
+                    EndGroup(),
+                ]
+            )
         )
 
         variant = SequenceGroup(
@@ -82,7 +83,7 @@ class StartEndTest(unittest.TestCase):
             ]
         )
 
-        self.assertTrue(check_variant(variant, query, self.activities))
+        self.assertTrue(query.match(variant))
 
         variant = SequenceGroup(
             lst=[
@@ -91,7 +92,7 @@ class StartEndTest(unittest.TestCase):
             ]
         )
 
-        self.assertFalse(check_variant(variant, query, self.activities))
+        self.assertFalse(query.match(variant))
 
         variant = SequenceGroup(
             lst=[
@@ -100,4 +101,4 @@ class StartEndTest(unittest.TestCase):
             ]
         )
 
-        self.assertFalse(check_variant(variant, query, self.activities))
+        self.assertFalse(query.match(variant))

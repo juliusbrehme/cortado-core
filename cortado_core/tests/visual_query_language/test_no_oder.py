@@ -1,34 +1,34 @@
 import unittest
 
 from itertools import permutations
-from cortado_core.utils.split_graph import LeafGroup, SequenceGroup, ParallelGroup
-from cortado_core.visual_query_language.query import check_variant
-
-
-# TODO: Mockup. Create real class for no order
-class NoOrderGroup(SequenceGroup):
-    pass
+from cortado_core.utils.split_graph import (
+    LeafGroup,
+    SequenceGroup,
+    ParallelGroup,
+    FallthroughGroup,
+)
+from cortado_core.visual_query_language.query import create_query_instance
 
 
 class NoOrderTest(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.query = SequenceGroup(
-            lst=[
-                LeafGroup(lst=["a"]),
-                NoOrderGroup(
-                    lst=[
-                        LeafGroup(lst=["b"]),
-                        LeafGroup(lst=["c"]),
-                        LeafGroup(lst=["d"]),
-                    ]
-                ),
-                LeafGroup(lst=["e"]),
-            ]
+        self.query = create_query_instance(
+            SequenceGroup(
+                lst=[
+                    LeafGroup(lst=["a"]),
+                    FallthroughGroup(
+                        lst=[
+                            LeafGroup(lst=["b"]),
+                            LeafGroup(lst=["c"]),
+                            LeafGroup(lst=["d"]),
+                        ]
+                    ),
+                    LeafGroup(lst=["e"]),
+                ]
+            )
         )
-
-        self.activities = [chr(i) for i in range(ord("a"), ord("z") + 1)]
 
     def test_order_match(self):
         for permutation in permutations(["b", "c", "d"]):
@@ -42,7 +42,7 @@ class NoOrderTest(unittest.TestCase):
                 ]
             )
 
-            self.assertTrue(check_variant(variant, self.query, self.activities))
+            self.assertTrue(self.query.match(variant))
 
     def test_missing_element(self):
         variant = SequenceGroup(
@@ -54,7 +54,7 @@ class NoOrderTest(unittest.TestCase):
             ]
         )
 
-        self.assertFalse(check_variant(variant, self.query, self.activities))
+        self.assertFalse(self.query.match(variant))
 
     def test_parallel_matching(self):
         variant = SequenceGroup(
@@ -71,7 +71,7 @@ class NoOrderTest(unittest.TestCase):
             ]
         )
 
-        self.assertTrue(check_variant(variant, self.query, self.activities))
+        self.assertTrue(self.query.match(variant))
 
     def test_extra_element(self):
         variant = SequenceGroup(
@@ -85,7 +85,7 @@ class NoOrderTest(unittest.TestCase):
             ]
         )
 
-        self.assertFalse(check_variant(variant, self.query, self.activities))
+        self.assertFalse(self.query.match(variant))
 
         variant = SequenceGroup(
             lst=[
@@ -102,7 +102,7 @@ class NoOrderTest(unittest.TestCase):
             ]
         )
 
-        self.assertFalse(check_variant(variant, self.query, self.activities))
+        self.assertFalse(self.query.match(variant))
 
     def test_parallel_and_sequence(self):
         variant = SequenceGroup(
@@ -114,4 +114,4 @@ class NoOrderTest(unittest.TestCase):
             ]
         )
 
-        self.assertTrue(check_variant(variant, self.query, self.activities))
+        self.assertTrue(self.query.match(variant))

@@ -5,27 +5,43 @@ from cortado_core.utils.split_graph import SequenceGroup
 from cortado_core.visual_query_language.dfs_matching import match_sequential
 from cortado_core.visual_query_language.unfold_tree import unfold_tree
 
-def check_variant(
-    variant: SequenceGroup, query: SequenceGroup, activities: List[str] = []
-) -> bool:
-    """
-    Check if the given variant matches the query pattern.
 
-    Args:
-        variant (Group): The variant to be checked.
-        query (Group): The query pattern.
-        activities (List[str]): List of all possible activites in the variant.
-
-    Returns:
-        bool: True if the variant matches the query, False otherwise.
+class PatternQuery:
     """
-    # Unfold the query to handle OptionalGroup and LoopGroup
-    # This creates multiple query variants (e.g., with and without optional parts)
-    unfolded_queries = unfold_tree(query)
-    
-    # Check if ANY unfolded query matches the variant
-    for unfolded_query in unfolded_queries:
-        if match_sequential(unfolded_query, variant):
-            return True
-    
-    return False
+    Base class for pattern queries.
+    """
+
+    def match(self, variant: SequenceGroup) -> bool:
+        raise NotImplementedError("Subclasses should implement this!")
+
+
+class CustomTreeCompareQuery(PatternQuery):
+    def __init__(self, query: SequenceGroup):
+        self.unfolded_trees = unfold_tree(query)
+
+    def match(self, variant: SequenceGroup) -> bool:
+        for query in self.unfolded_trees:
+            if self.__check_variant(variant, query):
+                return True
+        return False
+
+    def __check_variant(self, variant: SequenceGroup, query: SequenceGroup) -> bool:
+        """
+        Check if the given variant matches the query pattern.
+
+        Args:
+            variant (Group): The variant to be checked.
+            query (Group): The query pattern.
+
+        Returns:
+            bool: True if the variant matches the query, False otherwise.
+        """
+
+        return match_sequential(query, variant)
+
+
+def create_query_instance(query: SequenceGroup) -> PatternQuery:
+    """
+    Create an instance of a PatternQuery from a given query tree.
+    """
+    return CustomTreeCompareQuery(query)

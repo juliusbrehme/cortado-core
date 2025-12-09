@@ -16,6 +16,7 @@ setup(
         "cortado_core.performance",
         "cortado_core.variant_query_language",
         "cortado_core.variant_query_language.grammars",
+        "cortado_core.visual_query_language",
         "cortado_core.alignments",
         "cortado_core.clustering",
         "cortado_core.alignments.infix_alignments",
