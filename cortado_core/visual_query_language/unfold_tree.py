@@ -30,9 +30,11 @@ def unfold_tree(tree_query: Group | List[Group]) -> List[Group]:
         return [tree_query]
 
     tree_query = add_start_end_to_parallel_group(tree_query)
-    
+
     # Determine parent type for flattening same-type nesting
-    parent_type = type(tree_query) if type(tree_query) in (SequenceGroup, ParallelGroup) else None
+    parent_type = (
+        type(tree_query) if type(tree_query) in (SequenceGroup, ParallelGroup) else None
+    )
     new_trees: List[List[Group]] = []
     for child in tree_query:
         if check_leaf(child):
@@ -54,7 +56,9 @@ def unfold_tree(tree_query: Group | List[Group]) -> List[Group]:
             new_trees = merge_and_flatten(new_trees, unfold_tree_list, parent_type)
         elif type(child) is ParallelGroup:
             list_of_unfolded_trees = unfold_tree(child)
-            new_trees = merge_and_flatten(new_trees, list_of_unfolded_trees, parent_type)
+            new_trees = merge_and_flatten(
+                new_trees, list_of_unfolded_trees, parent_type
+            )
 
         else:
             raise TypeError(
@@ -96,10 +100,12 @@ def add_start_end_to_parallel_group(variant: Group):
     return variant
 
 
-def merge_and_flatten(list1: List[Group], list2: List[Group], parent_type: type = None) -> List[Group]:
+def merge_and_flatten(
+    list1: List[Group], list2: List[Group], parent_type: type = None
+) -> List[Group]:
     """
     Merge two lists of tree components, flattening same-type nesting.
-    
+
     Args:
         list1: Current list of tree components being built
         list2: New components to merge in
