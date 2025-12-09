@@ -81,16 +81,18 @@ class Group(list):
             return FallthroughGroup(
                 lst=[Group.deserialize(group) for group in serialized["fallthrough"]]
             )
-        
-        # Mapping from Leaf with ?Wildcard? to WildcardGroup
-        if "leaf" in serialized and serialized["leaf"][0] == "?Wildcard?":
-            return WildcardGroup(lst=serialized["leaf"])
 
         if "leaf" in serialized and isinstance(serialized["leaf"], List):
             return LeafGroup(lst=serialized["leaf"])
 
         if "loop" in serialized and isinstance(serialized["loop"], List):
-            return LoopGroup(lst=serialized["loop"])
+            repeat_count = serialized.get("repeat_count", None)
+            return LoopGroup(lst=[Group.deserialize(group) for group in serialized["loop"]], min_count=1, max_count=repeat_count)
+        
+        if "optional" in serialized and isinstance(serialized["optional"], list):
+            return OptionalGroup(
+                lst=[Group.deserialize(group) for group in serialized["optional"]]
+            )
 
         if "skip" in serialized and isinstance(serialized["skip"], List):
             return SkipGroup(
@@ -103,23 +105,12 @@ class Group(list):
         if "end" in serialized:
             return EndGroup(lst=[])
         
-
-        #TODO: fix optional and repeatable serialization
+        if "wildcard" in serialized:
+            return WildcardGroup(lst=[])
         
-        if "operator" in serialized and serialized["optional"]:
-            return OptionalGroup(
-                lst=[Group.deserialize(group) for group in serialized["operator"]]
-            )
+        if "anything" in serialized:
+            return AnythingGroup(lst=[])
         
-        if "operator" in serialized and serialized["repeatable"]:
-            min_count = 1
-            max_count = serialized.get("repeat_count", None)
-            return LoopGroup(
-                lst=[Group.deserialize(group) for group in serialized["operator"]],
-                min_count=min_count,
-                max_count=max_count,
-            )
-
         return SequenceGroup(lst=[])
 
     def checkGroupType(self):
