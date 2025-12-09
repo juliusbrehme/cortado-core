@@ -90,7 +90,6 @@ def match_sequential(query: SequenceGroup, variant: SequenceGroup) -> bool:
             # End of query reached -> all sequential parts matched -> possible candiate found
             if idxQuery == query_length:
                 # Match must be from start to end -> variant must also be fully consumed
-                print(f"idxVariant: {idxVariant}, variant_length: {variant_length}")
                 if has_start_point and has_end_point:
                     if idxVariant == variant_length:
                         candidates.append(subproblems)
