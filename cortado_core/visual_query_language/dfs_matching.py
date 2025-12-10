@@ -27,6 +27,7 @@ from cortado_core.utils.split_graph import (
     SequenceGroup,
     LeafGroup,
     AnythingGroup,
+    ChoiceGroup
 )
 from cortado_core.visual_query_language.matching_functions import match
 
@@ -176,11 +177,12 @@ def _match_anything_group(
     must_consume_all: bool,
 ) -> bool:
     """
-    Handle AnythingGroup matching. AnythingGroup matches 1 or more consecutive
-    variant elements (can be leaves or entire subtrees).
+    Handle AnythingGroup matching with backtracking. AnythingGroup matches 1 or more 
+    consecutive variant elements (can be leaves or entire subtrees).
 
     We try consuming 1 element, then 2, then 3, etc. until we find a valid
-    continuation or run out of variant elements.
+    continuation or run out of variant elements. Uses backtracking to explore all
+    possible consumption amounts.
 
     Args:
         query_list: List of query elements
@@ -195,7 +197,7 @@ def _match_anything_group(
     """
     remaining_variant = len(variant_list) - v_idx
 
-    # Try consuming 1, 2, 3, ... elements with AnythingGroup
+    # Try consuming 1, 2, 3, ... elements with AnythingGroup using backtracking
     # We need at least 1 element for AnythingGroup
     for consume_count in range(1, remaining_variant + 1):
         # After consuming 'consume_count' elements, try to match the rest
@@ -205,6 +207,7 @@ def _match_anything_group(
             query_list, variant_list, q_idx + 1, new_v_idx, q_end, must_consume_all
         ):
             return True
+        # If rest of query fails with this consumption, backtrack and try more elements
 
     # No valid consumption amount worked
     return False
@@ -229,11 +232,9 @@ def match_parallel(query: ParallelGroup, variant: ParallelGroup) -> bool:
     Returns:
         True if query and variant have matching branches (bijective match)
     """
-    query_branches = list(query)
-    variant_branches = list(variant)
-
-    # Must have same number of branches for exact match
-    if len(query_branches) != len(variant_branches):
+    
+    # at least as many variant branches as query branches for match (anything group can be more ofc)
+    if variant.list_length() < query.list_length():
         return False
 
     # Use backtracking to find a valid assignment
@@ -249,16 +250,18 @@ def match_parallel(query: ParallelGroup, variant: ParallelGroup) -> bool:
             True if remaining query branches can be matched to remaining variant branches
         """
         # Base case: all query branches have been matched
-        if q_idx == len(query_branches):
+        if q_idx == query.list_length():
             # All variant branches should be used (bijective match)
-            return len(used) == len(variant_branches)
+            return len(used) == variant.list_length()
 
-        q_branch = query_branches[q_idx]
+        q_branch = query[q_idx]
 
         # Try matching this query branch against each unused variant branch
-        for v_idx in range(len(variant_branches)):
+        # print("variant branches:",variant_branches)
+        for v_idx in range(variant.list_length()):
             if v_idx not in used:
-                if _branches_match(q_branch, variant_branches[v_idx]):
+                if _branches_match(q_branch, variant[v_idx]):
+                    # print("match",q_branch,variant_branches[v_idx])
                     # Found a match, mark it as used and continue
                     used.add(v_idx)
                     if backtrack(q_idx + 1, used):
