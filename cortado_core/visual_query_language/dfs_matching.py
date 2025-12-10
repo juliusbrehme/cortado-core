@@ -27,7 +27,8 @@ from cortado_core.utils.split_graph import (
     SequenceGroup,
     LeafGroup,
     AnythingGroup,
-    ChoiceGroup
+    ChoiceGroup,
+    FallthroughGroup,
 )
 from cortado_core.visual_query_language.matching_functions import match
 
@@ -177,7 +178,7 @@ def _match_anything_group(
     must_consume_all: bool,
 ) -> bool:
     """
-    Handle AnythingGroup matching with backtracking. AnythingGroup matches 1 or more 
+    Handle AnythingGroup matching with backtracking. AnythingGroup matches 1 or more
     consecutive variant elements (can be leaves or entire subtrees).
 
     We try consuming 1 element, then 2, then 3, etc. until we find a valid
@@ -224,6 +225,7 @@ def match_parallel(query: ParallelGroup, variant: ParallelGroup) -> bool:
 
     Uses backtracking DFS to correctly handle overlapping ChoiceGroups where
     a single variant branch could potentially match multiple query branches.
+    Also handles AnythingGroup which can match 1 or more variant branches.
 
     Args:
         query: ParallelGroup from the query
@@ -232,7 +234,7 @@ def match_parallel(query: ParallelGroup, variant: ParallelGroup) -> bool:
     Returns:
         True if query and variant have matching branches (bijective match)
     """
-    
+
     # at least as many variant branches as query branches for match (anything group can be more ofc)
     if variant.list_length() < query.list_length():
         return False
@@ -256,12 +258,30 @@ def match_parallel(query: ParallelGroup, variant: ParallelGroup) -> bool:
 
         q_branch = query[q_idx]
 
-        # Try matching this query branch against each unused variant branch
-        # print("variant branches:",variant_branches)
+        # Special handling for AnythingGroup: try matching 1, 2, 3, ... unused variant branches
+        if isinstance(q_branch, AnythingGroup):
+            unused_indices = [i for i in range(variant.list_length()) if i not in used]
+            # Try consuming 1, 2, 3, ... unused variant branches with AnythingGroup
+            for consume_count in range(1, len(unused_indices) + 1):
+                # Take the first consume_count unused branches
+                branches_to_use = unused_indices[:consume_count]
+                # Mark them as used
+                for v_idx in branches_to_use:
+                    used.add(v_idx)
+
+                if backtrack(q_idx + 1, used):
+                    return True
+
+                # Backtrack: remove from used set
+                for v_idx in branches_to_use:
+                    used.remove(v_idx)
+
+            return False
+
+        # Regular branch matching: try matching this query branch against each unused variant branch
         for v_idx in range(variant.list_length()):
             if v_idx not in used:
                 if _branches_match(q_branch, variant[v_idx]):
-                    # print("match",q_branch,variant_branches[v_idx])
                     # Found a match, mark it as used and continue
                     used.add(v_idx)
                     if backtrack(q_idx + 1, used):
@@ -296,3 +316,28 @@ def _branches_match(q_branch: Group, v_branch: Group) -> bool:
     # Leaf-level comparison (LeafGroup, ChoiceGroup, WildcardGroup, etc.)
     # Use match() from matching_functions.py
     return match(q_branch, v_branch)
+
+
+query = SequenceGroup(
+    lst=[
+        ParallelGroup(
+            lst=[
+                LeafGroup(lst=["a"]),
+                AnythingGroup(),
+            ]
+        )
+    ]
+)
+
+variant = SequenceGroup(
+    lst=[
+        ParallelGroup(
+            lst=[
+                LeafGroup(lst=["a"]),
+                LeafGroup(lst=["b"]),
+            ]
+        )
+    ]
+)
+
+print(match_sequential_dfs(query, variant))
