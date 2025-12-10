@@ -4,6 +4,12 @@ from cortado_core.utils.split_graph import SequenceGroup
 from cortado_core.visual_query_language.matching_algorithm import match_sequential
 from cortado_core.visual_query_language.dfs_matching import match_sequential_dfs
 from cortado_core.visual_query_language.unfold_tree import unfold_tree
+from cortado_core.visual_query_language.relaxng.query import (
+    build_query as build_relaxng_query,
+)
+from cortado_core.visual_query_language.relaxng.variant import (
+    build_variant as build_relaxng_variant,
+)
 from enum import Enum
 
 
@@ -72,6 +78,15 @@ class CustomTreeCompareQuery(PatternQuery):
         return match_sequential(query, variant)
 
 
+class RelaxNGQuery(PatternQuery):
+    def __init__(self, query: SequenceGroup):
+        self.relaxng_query = build_relaxng_query(query)
+
+    def match(self, variant: SequenceGroup) -> bool:
+        relaxng_variant = build_relaxng_variant(variant)
+        return self.relaxng_query(relaxng_variant)
+
+
 def create_query_instance(
     query: SequenceGroup, query_type: QueryType = QueryType.DFS
 ) -> PatternQuery:
@@ -81,5 +96,5 @@ def create_query_instance(
     if query_type == QueryType.DFS:
         return DFSCompareQuery(query)
     elif query_type == QueryType.RELAXED_NG:
-        pass
+        return RelaxNGQuery(query)
     return CustomTreeCompareQuery(query)

@@ -85,13 +85,35 @@ class Group(list):
         if "leaf" in serialized and isinstance(serialized["leaf"], List):
             return LeafGroup(lst=serialized["leaf"])
 
-        if "loop" in serialized and isinstance(serialized["loop"].List):
-            return LoopGroup(lst=serialized["leaf"])
+        if "loop" in serialized and isinstance(serialized["loop"], List):
+            repeat_count = serialized.get("repeat_count", None)
+            return LoopGroup(
+                lst=[Group.deserialize(group) for group in serialized["loop"]],
+                min_count=repeat_count,
+                max_count=repeat_count,
+            )
+
+        if "optional" in serialized and isinstance(serialized["optional"], list):
+            return OptionalGroup(
+                lst=[Group.deserialize(group) for group in serialized["optional"]]
+            )
 
         if "skip" in serialized and isinstance(serialized["skip"], List):
             return SkipGroup(
                 lst=[Group.deserialize(group) for group in serialized["skip"]]
             )
+
+        if "start" in serialized:
+            return StartGroup(lst=[])
+
+        if "end" in serialized:
+            return EndGroup(lst=[])
+
+        if "wildcard" in serialized:
+            return WildcardGroup(lst=[])
+
+        if "anything" in serialized:
+            return AnythingGroup(lst=[])
 
         return SequenceGroup(lst=[])
 
