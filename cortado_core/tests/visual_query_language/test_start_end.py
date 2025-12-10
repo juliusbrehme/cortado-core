@@ -1,4 +1,4 @@
-import unittest
+import pytest
 
 from cortado_core.utils.split_graph import (
     SequenceGroup,
@@ -7,19 +7,23 @@ from cortado_core.utils.split_graph import (
     EndGroup,
 )
 from cortado_core.visual_query_language.query import create_query_instance
+from cortado_core.tests.visual_query_language.query_type_fixture import query_type
 
 
-class StartEndTest(unittest.TestCase):
-    def test_start(self):
-        query = create_query_instance(
+class TestStart:
+    @pytest.fixture
+    def query(self, query_type):
+        return create_query_instance(
             SequenceGroup(
                 lst=[
                     StartGroup(),
                     LeafGroup(lst=["a"]),
                 ]
-            )
+            ),
+            query_type=query_type,
         )
 
+    def test_start(self, query):
         variant = SequenceGroup(
             lst=[
                 LeafGroup(lst=["a"]),
@@ -27,8 +31,9 @@ class StartEndTest(unittest.TestCase):
             ]
         )
 
-        self.assertTrue(query.match(variant))
+        assert query.match(variant)
 
+    def test_not_start(self, query):
         variant = SequenceGroup(
             lst=[
                 LeafGroup(lst=["b"]),
@@ -36,27 +41,23 @@ class StartEndTest(unittest.TestCase):
             ]
         )
 
-        self.assertFalse(query.match(variant))
+        assert not query.match(variant)
 
-    def test_end(self):
-        query = create_query_instance(
+
+class TestEnd:
+    @pytest.fixture
+    def query(self, query_type):
+        return create_query_instance(
             SequenceGroup(
                 lst=[
                     LeafGroup(lst=["a"]),
                     EndGroup(),
                 ]
-            )
+            ),
+            query_type=query_type,
         )
 
-        variant = SequenceGroup(
-            lst=[
-                LeafGroup(lst=["a"]),
-                LeafGroup(lst=["b"]),
-            ]
-        )
-
-        self.assertFalse(query.match(variant))
-
+    def test_end(self, query):
         variant = SequenceGroup(
             lst=[
                 LeafGroup(lst=["b"]),
@@ -64,36 +65,43 @@ class StartEndTest(unittest.TestCase):
             ]
         )
 
-        self.assertTrue(query.match(variant))
+        assert query.match(variant)
 
-    def test_start_end(self):
-        query = create_query_instance(
+    def test_not_end(self, query):
+        variant = SequenceGroup(
+            lst=[
+                LeafGroup(lst=["a"]),
+                LeafGroup(lst=["b"]),
+            ]
+        )
+
+        assert not query.match(variant)
+
+
+class TestStartEnd:
+    @pytest.fixture
+    def query(self, query_type):
+        return create_query_instance(
             SequenceGroup(
                 lst=[
                     StartGroup(),
                     LeafGroup(lst=["a"]),
                     EndGroup(),
                 ]
-            )
+            ),
+            query_type=query_type,
         )
 
+    def test_start_end(self, query):
         variant = SequenceGroup(
             lst=[
                 LeafGroup(lst=["a"]),
             ]
         )
 
-        self.assertTrue(query.match(variant))
+        assert query.match(variant)
 
-        variant = SequenceGroup(
-            lst=[
-                LeafGroup(lst=["b"]),
-                LeafGroup(lst=["a"]),
-            ]
-        )
-
-        self.assertFalse(query.match(variant))
-
+    def test_only_start(self, query):
         variant = SequenceGroup(
             lst=[
                 LeafGroup(lst=["a"]),
@@ -101,4 +109,14 @@ class StartEndTest(unittest.TestCase):
             ]
         )
 
-        self.assertFalse(query.match(variant))
+        assert not query.match(variant)
+
+    def test_only_end(self, query):
+        variant = SequenceGroup(
+            lst=[
+                LeafGroup(lst=["b"]),
+                LeafGroup(lst=["a"]),
+            ]
+        )
+
+        assert not query.match(variant)

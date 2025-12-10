@@ -1,37 +1,52 @@
-import unittest
-
+import pytest
 from cortado_core.utils.split_graph import (
     SequenceGroup,
     LeafGroup,
     ParallelGroup,
     AnythingGroup,
+    OptionalGroup,
 )
 from cortado_core.visual_query_language.query import create_query_instance
+from cortado_core.tests.visual_query_language.query_type_fixture import query_type
 
 
-class SimpleAnythingTest(unittest.TestCase):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class TestSingleAnything:
 
-        self.query = create_query_instance(
+    @pytest.fixture
+    def query(self, query_type):
+        return create_query_instance(
             SequenceGroup(
                 lst=[LeafGroup(lst=["a"]), AnythingGroup(), LeafGroup(lst=["b"])]
-            )
+            ),
+            query_type=query_type,
         )
 
-    def test_nothing_in_between(self):
+    @pytest.fixture
+    def query2(self, query_type):
+        return create_query_instance(
+            SequenceGroup(
+                lst=[
+                    LeafGroup(lst=["a"]),
+                    AnythingGroup(),
+                    LeafGroup(lst=["b"]),
+                    LeafGroup(lst=["c"]),
+                ]
+            ),
+            query_type=query_type,
+        )
+
+    def test_no_element_in_between(self, query):
         variant = SequenceGroup(lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["b"])])
+        assert not query.match(variant)
 
-        self.assertFalse(self.query.match(variant))
-
-    def test_single_element_in_between(self):
+    def test_single_element_in_between(self, query):
         variant = SequenceGroup(
             lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["x"]), LeafGroup(lst=["b"])]
         )
 
-        self.assertTrue(self.query.match(variant))
+        assert query.match(variant)
 
-    def test_multiple_elements_in_between(self):
+    def test_multiple_elements_in_between(self, query):
         variant = SequenceGroup(
             lst=[
                 LeafGroup(lst=["a"]),
@@ -41,9 +56,9 @@ class SimpleAnythingTest(unittest.TestCase):
             ]
         )
 
-        self.assertTrue(self.query.match(variant))
+        assert query.match(variant)
 
-    def test_parallel_elements_in_between(self):
+    def test_parallel_elements_in_between(self, query):
         variant = SequenceGroup(
             lst=[
                 LeafGroup(lst=["a"]),
@@ -52,23 +67,33 @@ class SimpleAnythingTest(unittest.TestCase):
             ]
         )
 
-        self.assertTrue(self.query.match(variant))
+        assert query.match(variant)
 
-    def test_non_matching(self):
+    def test_no_ending_element(self, query):
+        variant = SequenceGroup(lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["x"])])
+
+        assert not query.match(variant)
+
+    def test_backtracking(self, query2):
         variant = SequenceGroup(
-            lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["x"]), LeafGroup(lst=["c"])]
+            lst=[
+                LeafGroup(lst=["a"]),
+                LeafGroup(lst=["x"]),
+                LeafGroup(lst=["b"]),
+                LeafGroup(lst=["x"]),
+                LeafGroup(lst=["b"]),
+                LeafGroup(lst=["c"]),
+            ]
         )
 
-        self.assertFalse(self.query.match(variant))
+        assert query2.match(variant)
 
 
-class SpecialAnythingTest(unittest.TestCase):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.activities = [chr(i) for i in range(ord("a"), ord("z") + 1)]
+class TestDoubleAnything:
 
-    def test_double_use(self):
-        query = create_query_instance(
+    @pytest.fixture
+    def query(self, query_type):
+        return create_query_instance(
             SequenceGroup(
                 lst=[
                     LeafGroup(lst=["a"]),
@@ -76,31 +101,48 @@ class SpecialAnythingTest(unittest.TestCase):
                     AnythingGroup(),
                     LeafGroup(lst=["b"]),
                 ]
-            )
+            ),
+            query_type=query_type,
         )
 
+    def test_one_element_between(self, query):
+        variant = SequenceGroup(
+            lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["x"]), LeafGroup(lst=["b"])]
+        )
+
+        assert not query.match(variant)
+
+    def test_two_elements_between(self, query):
         variant = SequenceGroup(
             lst=[
                 LeafGroup(lst=["a"]),
                 LeafGroup(lst=["x"]),
-                LeafGroup(lst=["x"]),
-                LeafGroup(lst=["x"]),
-                LeafGroup(lst=["y"]),
                 LeafGroup(lst=["y"]),
                 LeafGroup(lst=["b"]),
             ]
         )
 
-        self.assertTrue(query.match(variant))
+        assert query.match(variant)
 
+    def test_multiple_elements_between(self, query):
         variant = SequenceGroup(
-            lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["x"]), LeafGroup(lst=["b"])]
+            lst=[
+                LeafGroup(lst=["a"]),
+                LeafGroup(lst=["x"]),
+                LeafGroup(lst=["y"]),
+                LeafGroup(lst=["z"]),
+                LeafGroup(lst=["b"]),
+            ]
         )
 
-        self.assertFalse(query.match(variant))
+        assert query.match(variant)
 
-    def test_two_anythings(self):
-        query = create_query_instance(
+
+class TestTwoAnythings:
+
+    @pytest.fixture
+    def query(self, query_type):
+        return create_query_instance(
             SequenceGroup(
                 lst=[
                     LeafGroup(lst=["a"]),
@@ -109,9 +151,11 @@ class SpecialAnythingTest(unittest.TestCase):
                     AnythingGroup(),
                     LeafGroup(lst=["c"]),
                 ]
-            )
+            ),
+            query_type=query_type,
         )
 
+    def test_fitting(self, query):
         variant = SequenceGroup(
             lst=[
                 LeafGroup(lst=["a"]),
@@ -122,28 +166,67 @@ class SpecialAnythingTest(unittest.TestCase):
             ]
         )
 
-        self.assertTrue(query.match(variant))
+        assert query.match(variant)
 
+    def test_missing_middle_element(self, query):
         variant = SequenceGroup(
             lst=[
                 LeafGroup(lst=["a"]),
-                LeafGroup(lst=["a"]),
-                LeafGroup(lst=["b"]),
-                LeafGroup(lst=["b"]),
-                LeafGroup(lst=["c"]),
+                LeafGroup(lst=["x"]),
+                LeafGroup(lst=["y"]),
                 LeafGroup(lst=["c"]),
             ]
         )
 
-        self.assertTrue(query.match(variant))
+        assert not query.match(variant)
+
+    def test_missing_gap(self, query):
+        variant = SequenceGroup(
+            lst=[
+                LeafGroup(lst=["a"]),
+                LeafGroup(lst=["b"]),
+                LeafGroup(lst=["y"]),
+                LeafGroup(lst=["c"]),
+            ]
+        )
+
+        assert not query.match(variant)
 
         variant = SequenceGroup(
             lst=[
                 LeafGroup(lst=["a"]),
-                LeafGroup(lst=["a"]),
+                LeafGroup(lst=["x"]),
                 LeafGroup(lst=["b"]),
                 LeafGroup(lst=["c"]),
             ]
         )
 
-        self.assertFalse(query.match(variant))
+        assert not query.match(variant)
+
+
+class TestOptionalAnything:
+
+    @pytest.fixture
+    def query(self, query_type):
+        return create_query_instance(
+            SequenceGroup(
+                lst=[
+                    LeafGroup(lst=["a"]),
+                    OptionalGroup(lst=[AnythingGroup()]),
+                    LeafGroup(lst=["b"]),
+                ]
+            ),
+            query_type=query_type,
+        )
+
+    def test_with_element_in_between(self, query):
+        variant = SequenceGroup(
+            lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["x"]), LeafGroup(lst=["b"])]
+        )
+
+        assert query.match(variant)
+
+    def test_without_element_in_between(self, query):
+        variant = SequenceGroup(lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["b"])])
+
+        assert query.match(variant)

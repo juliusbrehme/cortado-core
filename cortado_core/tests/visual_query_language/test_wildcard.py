@@ -1,4 +1,4 @@
-import unittest
+import pytest
 
 from cortado_core.utils.split_graph import (
     ParallelGroup,
@@ -7,32 +7,33 @@ from cortado_core.utils.split_graph import (
     WildcardGroup,
 )
 from cortado_core.visual_query_language.query import create_query_instance
+from cortado_core.tests.visual_query_language.query_type_fixture import query_type
 
 
-class SimpleWildcardTest(unittest.TestCase):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self.query = create_query_instance(
+class TestWildcard:
+    @pytest.fixture
+    def query(self, query_type):
+        return create_query_instance(
             SequenceGroup(
                 lst=[LeafGroup(lst=["a"]), WildcardGroup(), LeafGroup(lst=["b"])]
-            )
+            ),
+            query_type=query_type,
         )
 
-    def test_wildcard_matching(self):
+    def test_wildcard_matching(self, query):
         variant = SequenceGroup(
             lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["x"]), LeafGroup(lst=["b"])]
         )
 
-        self.assertTrue(self.query.match(variant))
+        assert query.match(variant)
 
         variant = SequenceGroup(
             lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["y"]), LeafGroup(lst=["b"])]
         )
 
-        self.assertTrue(self.query.match(variant))
+        assert query.match(variant)
 
-    def test_wildcard_with_multiple_elements(self):
+    def test_wildcard_with_multiple_elements(self, query):
         variant = SequenceGroup(
             lst=[
                 LeafGroup(lst=["a"]),
@@ -42,9 +43,9 @@ class SimpleWildcardTest(unittest.TestCase):
             ]
         )
 
-        self.assertFalse(self.query.match(variant))
+        assert not query.match(variant)
 
-    def test_wildcard_parallel(self):
+    def test_wildcard_parallel(self, query):
         variant = SequenceGroup(
             lst=[
                 LeafGroup(lst=["a"]),
@@ -53,4 +54,4 @@ class SimpleWildcardTest(unittest.TestCase):
             ]
         )
 
-        self.assertFalse(self.query.match(variant))
+        assert not query.match(variant)

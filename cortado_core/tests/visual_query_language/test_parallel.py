@@ -1,14 +1,16 @@
-import unittest
+import pytest
 
-from cortado_core.utils.split_graph import LeafGroup, ParallelGroup, SequenceGroup
+from cortado_core.utils.split_graph import (
+    LeafGroup, ParallelGroup, SequenceGroup, AnythingGroup, ChoiceGroup
+)
 from cortado_core.visual_query_language.query import create_query_instance
+from cortado_core.tests.visual_query_language.query_type_fixture import query_type
 
 
-class SimpleParallelTest(unittest.TestCase):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self.query = create_query_instance(
+class TestSimpleParallel:
+    @pytest.fixture
+    def query(self, query_type):
+        return create_query_instance(
             SequenceGroup(
                 lst=[
                     ParallelGroup(
@@ -19,10 +21,11 @@ class SimpleParallelTest(unittest.TestCase):
                         ]
                     )
                 ]
-            )
+            ),
+            query_type=query_type,
         )
 
-    def test_exact_match(self):
+    def test_exact_match(self, query):
         variant = SequenceGroup(
             lst=[
                 ParallelGroup(
@@ -35,9 +38,24 @@ class SimpleParallelTest(unittest.TestCase):
             ]
         )
 
-        self.assertTrue(self.query.match(variant))
+        assert query.match(variant)
 
-    def test_with_additional_branch(self):
+    def test_different_order(self, query):
+        variant = SequenceGroup(
+            lst=[
+                ParallelGroup(
+                    lst=[
+                        LeafGroup(lst=["c"]),
+                        LeafGroup(lst=["a"]),
+                        LeafGroup(lst=["b"]),
+                    ]
+                )
+            ]
+        )
+
+        assert query.match(variant)
+
+    def test_additional_element(self, query):
         variant = SequenceGroup(
             lst=[
                 ParallelGroup(
@@ -51,21 +69,50 @@ class SimpleParallelTest(unittest.TestCase):
             ]
         )
 
-        self.assertFalse(self.query.match(variant))
+        assert not query.match(variant)
 
-    def test_missing_branch(self):
+    def test_missing_element(self, query):
         variant = SequenceGroup(
             lst=[ParallelGroup(lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["b"])])]
         )
 
-        self.assertFalse(self.query.match(variant))
+        assert not query.match(variant)
 
-    def test_different_order(self):
+class TestAnythingParallel:
+    @pytest.fixture
+    def query(self, query_type):
+        return create_query_instance(
+            SequenceGroup(
+                lst=[
+                    ParallelGroup(
+                        lst=[
+                            LeafGroup(lst=["a"]),
+                            AnythingGroup(),
+                        ]
+                    )
+                ]
+            ),
+            query_type=query_type,
+        )
+    
+    def test_empty(self, query):
         variant = SequenceGroup(
             lst=[
                 ParallelGroup(
                     lst=[
-                        LeafGroup(lst=["c"]),
+                        LeafGroup(lst=["a"]),
+                    ]
+                )
+            ]
+        )
+
+        assert not query.match(variant)
+
+    def test_single_element(self, query):
+        variant = SequenceGroup(
+            lst=[
+                ParallelGroup(
+                    lst=[
                         LeafGroup(lst=["a"]),
                         LeafGroup(lst=["b"]),
                     ]
@@ -73,21 +120,94 @@ class SimpleParallelTest(unittest.TestCase):
             ]
         )
 
-        self.assertTrue(self.query.match(variant))
+        assert query.match(variant)
 
-    def test_in_sequence(self):
+    def test_multiple_elements(self, query):
         variant = SequenceGroup(
             lst=[
-                LeafGroup(lst=["x"]),
+                ParallelGroup(
+                    lst=[
+                        LeafGroup(lst=["a"]),
+                        LeafGroup(lst=["b"]),
+                        LeafGroup(lst=["c"]),
+                        LeafGroup(lst=["d"]),
+                    ]
+                )
+            ]
+        )
+
+        assert query.match(variant)
+
+    def test_missing_required_element(self, query):
+        variant = SequenceGroup(
+            lst=[
+                ParallelGroup(
+                    lst=[
+                        LeafGroup(lst=["b"]),
+                        LeafGroup(lst=["c"]),
+                    ]
+                )
+            ]
+        )
+
+        assert not query.match(variant)
+
+
+class TestChoiceParallel:
+    @pytest.fixture
+    def query(self, query_type):
+        return create_query_instance(
+            SequenceGroup(
+                lst=[
+                    ParallelGroup(
+                        lst=[
+                            ChoiceGroup(
+                                lst=[
+                                    LeafGroup(lst=["a"]),
+                                    LeafGroup(lst=["b"]), 
+                                ]
+                            ),
+                            ChoiceGroup(
+                                lst=[
+                                    LeafGroup(lst=["b"]),
+                                    LeafGroup(lst=["c"]), 
+                                ]
+                            ),
+                            LeafGroup(lst=["a"]),
+                        ]
+                    )
+                ]
+            ),
+            query_type=query_type,
+        )
+    
+
+    def test_choice_match(self, query):
+        variant = SequenceGroup(
+            lst=[
                 ParallelGroup(
                     lst=[
                         LeafGroup(lst=["a"]),
                         LeafGroup(lst=["b"]),
                         LeafGroup(lst=["c"]),
                     ]
-                ),
-                LeafGroup(lst=["y"]),
+                )
             ]
         )
 
-        self.assertTrue(self.query.match(variant))
+        assert query.match(variant)
+
+    def test_single_take(self, query):
+        variant = SequenceGroup(
+            lst=[
+                ParallelGroup(
+                    lst=[
+                        LeafGroup(lst=["b"]),
+                        LeafGroup(lst=["b"]),
+                        LeafGroup(lst=["a"]),
+                    ]
+                )
+            ]
+        )
+
+        assert not query.match(variant)
