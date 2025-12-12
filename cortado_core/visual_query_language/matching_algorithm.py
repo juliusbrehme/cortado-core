@@ -107,6 +107,10 @@ def match_sequential(query: SequenceGroup, variant: SequenceGroup) -> bool:
                 idxVariant += 1
             idxQuery = 0 + (has_start_point or has_end_point)
             subproblems = []
+            # Query has start point and there is a missmatch, return false
+            # (same for end_point because we reverse the list)
+            if has_start_point or has_end_point:
+                return False
 
         else:
             # Parallel are treated as subproblems -> only needs to be checked if the sequential parts match

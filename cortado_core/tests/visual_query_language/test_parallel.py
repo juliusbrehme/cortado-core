@@ -214,4 +214,4 @@ class TestChoiceParallel:
             ]
         )
 
-        assert not query.match(variant)
+        assert query.match(variant)

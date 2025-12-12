@@ -120,13 +120,10 @@ def match_no_order(
     ):
         return False
 
-    children_query = set(list(node_query))
-    children_variant = list(node_variant)
-
-    if children_query.list_length() != children_variant.list_length():
+    if node_query.list_length() != node_variant.list_length():
         return False
 
-    for child in children_variant:
-        if not child in children_query:
+    for child in node_variant:
+        if not child in node_query:
             return False
     return True
