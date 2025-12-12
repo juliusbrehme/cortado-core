@@ -316,28 +316,3 @@ def _branches_match(q_branch: Group, v_branch: Group) -> bool:
     # Leaf-level comparison (LeafGroup, ChoiceGroup, WildcardGroup, etc.)
     # Use match() from matching_functions.py
     return match(q_branch, v_branch)
-
-
-query = SequenceGroup(
-    lst=[
-        ParallelGroup(
-            lst=[
-                LeafGroup(lst=["a"]),
-                AnythingGroup(),
-            ]
-        )
-    ]
-)
-
-variant = SequenceGroup(
-    lst=[
-        ParallelGroup(
-            lst=[
-                LeafGroup(lst=["a"]),
-                LeafGroup(lst=["b"]),
-            ]
-        )
-    ]
-)
-
-print(match_sequential_dfs(query, variant))
