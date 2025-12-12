@@ -1,7 +1,11 @@
 import pytest
 
 from cortado_core.utils.split_graph import (
-    LeafGroup, ParallelGroup, SequenceGroup, AnythingGroup, ChoiceGroup
+    LeafGroup,
+    ParallelGroup,
+    SequenceGroup,
+    AnythingGroup,
+    ChoiceGroup,
 )
 from cortado_core.visual_query_language.query import create_query_instance
 from cortado_core.tests.visual_query_language.query_type_fixture import query_type
@@ -78,6 +82,7 @@ class TestSimpleParallel:
 
         assert not query.match(variant)
 
+
 class TestAnythingParallel:
     @pytest.fixture
     def query(self, query_type):
@@ -94,7 +99,7 @@ class TestAnythingParallel:
             ),
             query_type=query_type,
         )
-    
+
     def test_empty(self, query):
         variant = SequenceGroup(
             lst=[
@@ -164,13 +169,13 @@ class TestChoiceParallel:
                             ChoiceGroup(
                                 lst=[
                                     LeafGroup(lst=["a"]),
-                                    LeafGroup(lst=["b"]), 
+                                    LeafGroup(lst=["b"]),
                                 ]
                             ),
                             ChoiceGroup(
                                 lst=[
                                     LeafGroup(lst=["b"]),
-                                    LeafGroup(lst=["c"]), 
+                                    LeafGroup(lst=["c"]),
                                 ]
                             ),
                             LeafGroup(lst=["a"]),
@@ -180,7 +185,6 @@ class TestChoiceParallel:
             ),
             query_type=query_type,
         )
-    
 
     def test_choice_match(self, query):
         variant = SequenceGroup(

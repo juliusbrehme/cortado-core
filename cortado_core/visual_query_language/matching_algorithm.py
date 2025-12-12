@@ -5,7 +5,8 @@ from cortado_core.utils.split_graph import (
     StartGroup,
     EndGroup,
     ParallelGroup,
-    SequenceGroup, AnythingGroup,
+    SequenceGroup,
+    AnythingGroup,
 )
 from cortado_core.visual_query_language.matching_functions import match
 
@@ -100,7 +101,6 @@ def match_sequential(query: SequenceGroup, variant: SequenceGroup) -> bool:
             idxQuery = 0 + (has_start_point or has_end_point)
             subproblems = []
             continue
-
 
         if not match(query[idxQuery], variant[idxVariant]):
             if idxQuery == 0 + (has_start_point or has_end_point):
@@ -241,7 +241,7 @@ def handle_anything(
     """
     # Create the rest of the query (skip the AnythingGroup itself)
     # We wrap it in SequenceGroup to be compatible with match_sequential
-    query_remainder = SequenceGroup(lst=full_query[q_idx + 1:])
+    query_remainder = SequenceGroup(lst=full_query[q_idx + 1 :])
 
     # Calculate how many items are left in the variant
     variant_remaining_len = full_variant.list_length() - v_idx
