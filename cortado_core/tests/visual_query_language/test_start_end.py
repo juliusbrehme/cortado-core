@@ -22,7 +22,7 @@ class TestStart:
             ),
             query_type=query_type,
         )
-    
+
     @pytest.fixture
     def query2(self, query_type):
         return create_query_instance(
@@ -84,7 +84,7 @@ class TestEnd:
             ),
             query_type=query_type,
         )
-    
+
     @pytest.fixture
     def query2(self, query_type):
         return create_query_instance(
@@ -147,7 +147,6 @@ class TestStartEnd:
             ),
             query_type=query_type,
         )
-
 
     def test_start_end(self, query):
         variant = SequenceGroup(
