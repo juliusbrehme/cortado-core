@@ -1,0 +1,151 @@
+from typing import Tuple, Deque, List
+from collections import deque
+from dataclasses import dataclass
+from cortado_core.utils.split_graph import (
+    Group,
+    OptionalGroup,
+    ParallelGroup,
+    SequenceGroup,
+    LoopGroup,
+    LeafGroup,
+    FallthroughGroup,
+    WildcardGroup,
+    AnythingGroup,
+    ChoiceGroup,
+)
+from cortado_core.visual_query_language.matching_functions import match as match_fn
+
+
+@dataclass
+class SolvingRun:
+    queue: Deque
+    assigned: List[bool]
+    num_anythings: int
+    variant: ParallelGroup
+
+
+class ParallelSolver:
+    def __init__(self, query: ParallelGroup):
+        self.query = query
+        self.query_length = query.list_length()
+
+        # If query containts a sequence create a vm for it
+        self.sequence_vm = None
+        for element in query:
+            if isinstance(element, OptionalGroup):
+                element = element[0]
+
+            if isinstance(element, SequenceGroup):
+                from cortado_core.visual_query_language.virtual_machine.vm import (
+                    compile_vm,
+                )  # pylint: disable=import-outside-toplevel - prevents circular import
+
+                self.sequence_vm = compile_vm(element)
+                break  # Only one sequence per parallel
+
+    def match(self, variant: ParallelGroup) -> bool:
+        assigned = [False] * variant.list_length()
+
+        queue = deque()
+        for element in self.query:
+            queue.append(element)
+
+        return self.match_element(SolvingRun(queue, assigned, 0, variant))
+
+    def match_element(self, run: SolvingRun) -> bool:
+        if not run.queue:
+            if run.num_anythings == 0:
+                return all(run.assigned)
+            return run.assigned.count(False) - run.num_anythings >= 0
+
+        element = run.queue.popleft()
+        etype = type(element)
+
+        if etype is LoopGroup:
+            if self.match_loop(element, run):
+                return True
+
+        elif etype is OptionalGroup:
+            if self.match_optional(element, run):
+                return True
+
+        elif etype in (LeafGroup, FallthroughGroup, WildcardGroup, ChoiceGroup):
+            for i, _val in enumerate(run.assigned):
+                if _val:
+                    continue
+
+                variant_element = run.variant[i]
+                if match_fn(element, variant_element):
+                    run.assigned[i] = True
+                    if self.match_element(run):
+                        return True
+                    run.assigned[i] = False  # Backtrack
+
+        elif etype is SequenceGroup:
+            if self.match_sequence(run):
+                return True
+
+        elif etype is AnythingGroup:
+            # Anything matches at least one unassigned element
+            run.num_anythings += 1
+            if self.match_element(run):
+                return True
+            run.num_anythings -= 1  # Backtrack
+
+        else:
+            raise TypeError(f"Unsupported group type in ParallelSolver: {etype}")
+
+        # Backtrack
+        run.queue.appendleft(element)
+        return False
+
+    def match_loop(self, loop: LoopGroup, run: SolvingRun) -> bool:
+        assert (
+            loop.list_length() == 1
+        ), "LoopGroup in ParallelSolver should contain a single element"
+        loop_body = loop[0]
+
+        # Add all repetitions of the loop body
+        for _ in range(loop.min_count):
+            run.queue.appendleft(loop_body)
+
+        if self.match_element(run):
+            return True
+
+        # Backtrack case: remove one repetition and try again
+        for _ in range(loop.min_count):
+            run.queue.popleft()
+
+        return False
+
+    def match_optional(self, optional: OptionalGroup, run: SolvingRun) -> bool:
+        assert (
+            optional.list_length() == 1
+        ), "OptionalGroup in ParallelSolver should contain a single element"
+        optional_body = optional[0]
+
+        # First try: include the optional body
+        run.queue.appendleft(optional_body)
+        if self.match_element(run):
+            return True
+
+        # Second try: exclude the optional body
+        run.queue.popleft()
+        return self.match_element(run)
+
+    def match_sequence(self, run: SolvingRun) -> bool:
+        assert self.sequence_vm is not None, "No sequence VM available for matching"
+
+        for i, assigned in enumerate(run.assigned):
+            if assigned:
+                continue
+
+            if not isinstance(run.variant[i], SequenceGroup):
+                continue
+
+            variant_element = run.variant[i]
+            if self.sequence_vm.run(variant_element):
+                return True
+            break  # There will be only one sequence in parallel group
+
+        return False

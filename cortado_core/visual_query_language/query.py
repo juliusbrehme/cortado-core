@@ -10,6 +10,7 @@ from cortado_core.visual_query_language.relaxng.query import (
 from cortado_core.visual_query_language.relaxng.variant import (
     build_variant as build_relaxng_variant,
 )
+from cortado_core.visual_query_language.virtual_machine.vm import compile_vm
 from enum import Enum
 
 
@@ -17,6 +18,8 @@ class QueryType(Enum):
     BFS = 1
     DFS = 2
     RELAXED_NG = 3
+    VM = 4
+
 
 
 class PatternQuery:
@@ -87,6 +90,20 @@ class RelaxNGQuery(PatternQuery):
         return self.relaxng_query(relaxng_variant)
 
 
+class VMQuery(PatternQuery):
+    def __init__(self, query: SequenceGroup):
+        self.vm = compile_vm(query)
+
+        # print(query)
+        # self.vm.print_prog()
+
+    def match(self, variant):
+        # print("Check variant:")
+        # print(variant)
+        return self.vm.run(variant)
+
+
+
 def create_query_instance(
     query: SequenceGroup, query_type: QueryType = QueryType.DFS
 ) -> PatternQuery:
@@ -97,4 +114,6 @@ def create_query_instance(
         return DFSCompareQuery(query)
     elif query_type == QueryType.RELAXED_NG:
         return RelaxNGQuery(query)
+    elif query_type == QueryType.VM:
+        return VMQuery(query)
     return CustomTreeCompareQuery(query)
