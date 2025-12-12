@@ -161,6 +161,7 @@ def match_parallel(query: ParallelGroup, variant: ParallelGroup) -> bool:
 
     Uses backtracking DFS to correctly handle overlapping ChoiceGroups where
     a single variant branch could potentially match multiple query branches.
+    Also handles AnythingGroup which can match 1 or more variant branches.
 
     Args:
         query: ParallelGroup from the query
@@ -169,8 +170,10 @@ def match_parallel(query: ParallelGroup, variant: ParallelGroup) -> bool:
     Returns:
         True if query and variant have matching branches (bijective match)
     """
-    query_branches = query
-    variant_branches = variant
+
+    # at least as many variant branches as query branches for match (anything group can be more ofc)
+    if variant.list_length() < query.list_length():
+        return False
 
     # Use backtracking to find a valid assignment
     def backtrack(q_idx: int, used: set) -> bool:
@@ -185,16 +188,36 @@ def match_parallel(query: ParallelGroup, variant: ParallelGroup) -> bool:
             True if remaining query branches can be matched to remaining variant branches
         """
         # Base case: all query branches have been matched
-        if q_idx == len(query_branches):
+        if q_idx == query.list_length():
             # All variant branches should be used (bijective match)
-            return len(used) == variant_branches.list_length()
+            return len(used) == variant.list_length()
 
-        q_branch = query_branches[q_idx]
+        q_branch = query[q_idx]
 
-        # Try matching this query branch against each unused variant branch
-        for v_idx in range(variant_branches.list_length()):
+        # Special handling for AnythingGroup: try matching 1, 2, 3, ... unused variant branches
+        if isinstance(q_branch, AnythingGroup):
+            unused_indices = [i for i in range(variant.list_length()) if i not in used]
+            # Try consuming 1, 2, 3, ... unused variant branches with AnythingGroup
+            for consume_count in range(1, len(unused_indices) + 1):
+                # Take the first consume_count unused branches
+                branches_to_use = unused_indices[:consume_count]
+                # Mark them as used
+                for v_idx in branches_to_use:
+                    used.add(v_idx)
+
+                if backtrack(q_idx + 1, used):
+                    return True
+
+                # Backtrack: remove from used set
+                for v_idx in branches_to_use:
+                    used.remove(v_idx)
+
+            return False
+
+        # Regular branch matching: try matching this query branch against each unused variant branch
+        for v_idx in range(variant.list_length()):
             if v_idx not in used:
-                if _branches_match(q_branch, variant_branches[v_idx]):
+                if _branches_match(q_branch, variant[v_idx]):
                     # Found a match, mark it as used and continue
                     used.add(v_idx)
                     if backtrack(q_idx + 1, used):
