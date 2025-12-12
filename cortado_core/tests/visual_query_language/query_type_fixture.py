@@ -2,6 +2,6 @@ import pytest
 from cortado_core.visual_query_language.query import QueryType
 
 
-@pytest.fixture(params=[QueryType.DFS])
+@pytest.fixture(params=[QueryType.DFS, QueryType.BFS, QueryType.RELAXED_NG])
 def query_type(request):
     return request.param
