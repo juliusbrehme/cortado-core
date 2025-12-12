@@ -1,14 +1,13 @@
+from typing import List
+
 from cortado_core.utils.split_graph import (
     Group,
     StartGroup,
     EndGroup,
     ParallelGroup,
-    SequenceGroup,
-    LeafGroup,
+    SequenceGroup, AnythingGroup,
 )
 from cortado_core.visual_query_language.matching_functions import match
-from collections import Counter
-from typing import List
 
 
 def check_start_point(query: List[Group], variant: List[Group]) -> bool:
@@ -73,6 +72,36 @@ def match_sequential(query: SequenceGroup, variant: SequenceGroup) -> bool:
     idxVariant = 0
 
     while idxQuery < query_length and idxVariant < variant_length:
+
+        if isinstance(query[idxQuery], AnythingGroup):
+            # 1. Anything found: We cannot proceed linearly.
+            # We must try to "consume" 1 element, then 2, then 3...
+            # and see if the REST of the query matches the REST of the variant.
+
+            # First, verify the subproblems we collected BEFORE this AnythingGroup.
+            # If the part before the AnythingGroup is invalid, skip or return false
+            prefix_match = True
+            for sub_q, sub_v in subproblems:
+                if not match_parallel(sub_q, sub_v):
+                    prefix_match = False
+                    break
+            # Return false if we have a start point and the subproblem does not match
+            if has_start_point and not prefix_match:
+                return False
+
+            found_anything_match = False
+            if prefix_match:
+                if handle_anything(query, variant, idxQuery, idxVariant, has_end_point):
+                    return True
+
+            # Otherwise, reset and slide the window
+            if idxQuery == 0 + (has_start_point or has_end_point):
+                idxVariant += 1
+            idxQuery = 0 + (has_start_point or has_end_point)
+            subproblems = []
+            continue
+
+
         if not match(query[idxQuery], variant[idxVariant]):
             if idxQuery == 0 + (has_start_point or has_end_point):
                 idxVariant += 1
@@ -196,3 +225,39 @@ def _branches_match(q_branch: Group, v_branch: Group) -> bool:
     # Leaf-level comparison (LeafGroup, ChoiceGroup, WildcardGroup, etc.)
     # Use match() from matching_functions.py
     return match(q_branch, v_branch)
+
+
+def handle_anything(
+    full_query: SequenceGroup,
+    full_variant: SequenceGroup,
+    q_idx: int,
+    v_idx: int,
+    has_end_point: bool,
+) -> bool:
+    """
+    Helper to handle the 'Anything' operator.
+    It tries to consume k items from the variant (k=1 to remaining),
+    and recursively checks if the remainder matches using match_sequential.
+    """
+    # Create the rest of the query (skip the AnythingGroup itself)
+    # We wrap it in SequenceGroup to be compatible with match_sequential
+    query_remainder = SequenceGroup(lst=full_query[q_idx + 1:])
+
+    # Calculate how many items are left in the variant
+    variant_remaining_len = full_variant.list_length() - v_idx
+
+    # AnythingGroup is greedy/variable: It consumes 'consume_len' items.
+    # It must consume at least 1 item
+    # It can consume up to the end of the variant.
+    for consume_len in range(1, variant_remaining_len + 1):
+
+        # Calculate where the remainder of the variant starts
+        next_v_idx = v_idx + consume_len
+
+        # Get the variant remainder
+        variant_remainder = SequenceGroup(lst=full_variant[next_v_idx:])
+
+        if match_sequential(query_remainder, variant_remainder):
+            return True
+
+    return False
