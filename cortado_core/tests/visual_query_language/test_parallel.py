@@ -215,3 +215,146 @@ class TestChoiceParallel:
         )
 
         assert query.match(variant)
+
+
+class TestComplexParallel:
+    @pytest.fixture
+    def query(self, query_type):
+        return create_query_instance(
+            SequenceGroup(
+                lst=[
+                    ParallelGroup(
+                        lst=[
+                            LeafGroup(lst=["f"]),
+                            SequenceGroup(
+                                lst=[
+                                    LeafGroup(lst=["a"]),
+                                    ParallelGroup(
+                                        lst=[
+                                            LeafGroup(lst=["b"]),
+                                            LeafGroup(lst=["c"]),
+                                        ]
+                                    ),
+                                    LeafGroup(lst=["d"]),
+                                    LeafGroup(lst=["e"]),
+                                ]
+                            ),
+                        ]
+                    )
+                ]
+            ),
+            query_type=query_type,
+        )
+
+    def test_complex_parallel_match(self, query):
+        variant = SequenceGroup(
+            lst=[
+                LeafGroup(lst=["t"]),
+                LeafGroup(lst=["x"]),
+                ParallelGroup(
+                    lst=[
+                        LeafGroup(lst=["f"]),
+                        SequenceGroup(
+                            lst=[
+                                LeafGroup(lst=["a"]),
+                                ParallelGroup(
+                                    lst=[
+                                        LeafGroup(lst=["b"]),
+                                        LeafGroup(lst=["c"]),
+                                    ]
+                                ),
+                                LeafGroup(lst=["d"]),
+                                LeafGroup(lst=["e"]),
+                            ]
+                        ),
+                    ]
+                ),
+            ]
+        )
+
+        assert query.match(variant)
+
+    def test_complex_parallel_match2(self, query):
+        variant = SequenceGroup(
+            lst=[
+                LeafGroup(lst=["x"]),
+                LeafGroup(lst=["u"]),
+                LeafGroup(lst=["v"]),
+                ParallelGroup(
+                    lst=[
+                        SequenceGroup(
+                            lst=[
+                                LeafGroup(lst=["a"]),
+                                ParallelGroup(
+                                    lst=[
+                                        LeafGroup(lst=["b"]),
+                                        LeafGroup(lst=["c"]),
+                                    ]
+                                ),
+                                LeafGroup(lst=["d"]),
+                                LeafGroup(lst=["e"]),
+                            ]
+                        ),
+                        LeafGroup(lst=["f"]),
+                    ]
+                ),
+                LeafGroup(lst=["y"]),
+                ParallelGroup(
+                    lst=[
+                        LeafGroup(lst=["w"]),
+                        LeafGroup(lst=["t"]),
+                        LeafGroup(lst=["z"]),
+                    ]
+                ),
+            ]
+        )
+
+        assert query.match(variant)
+
+
+class TestSubgraphComplexParallel:
+    @pytest.fixture
+    def query(self, query_type):
+        return create_query_instance(
+            SequenceGroup(
+                lst=[
+                    LeafGroup(lst=["a"]),
+                    ParallelGroup(
+                        lst=[
+                            LeafGroup(lst=["b"]),
+                            LeafGroup(lst=["c"]),
+                        ]
+                    ),
+                    LeafGroup(lst=["d"]),
+                    LeafGroup(lst=["e"]),
+                ]
+            ),
+            query_type=query_type,
+        )
+
+    def test_subgraph_complex_parallel_match(self, query):
+        variant = SequenceGroup(
+            lst=[
+                LeafGroup(lst=["x"]),
+                ParallelGroup(
+                    lst=[
+                        LeafGroup(lst=["f"]),
+                        SequenceGroup(
+                            lst=[
+                                LeafGroup(lst=["a"]),
+                                ParallelGroup(
+                                    lst=[
+                                        LeafGroup(lst=["b"]),
+                                        LeafGroup(lst=["c"]),
+                                    ]
+                                ),
+                                LeafGroup(lst=["d"]),
+                                LeafGroup(lst=["e"]),
+                            ]
+                        ),
+                    ]
+                ),
+            ]
+        )
+
+        assert query.match(variant)

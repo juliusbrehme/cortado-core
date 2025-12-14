@@ -165,6 +165,37 @@ def _dfs_match(
             query_list, variant_list, q_idx + 1, v_idx + 1, q_end, must_consume_all
         )
 
+    # If variant element is a SequenceGroup, try to recursively match the query inside it
+    if isinstance(current_variant, SequenceGroup):
+        # Construct a query with the remaining elements to match
+        remaining_query = SequenceGroup(lst=query_list[q_idx : q_end + 1])
+        # Try to find the query pattern inside this SequenceGroup
+        if match_sequential_dfs(remaining_query, current_variant):
+            # Found a match inside this SequenceGroup
+            # Skip past this variant element and continue
+            return _dfs_match(
+                query_list, variant_list, q_end + 1, v_idx + 1, q_end, must_consume_all
+            )
+
+    # If variant element is a ParallelGroup, try to find the query pattern inside its branches
+    if isinstance(current_variant, ParallelGroup):
+        # Construct a query with the remaining elements to match
+        remaining_query = SequenceGroup(lst=query_list[q_idx : q_end + 1])
+        # Try to find the query pattern inside any branch of this ParallelGroup
+        for branch in list(current_variant):
+            if isinstance(branch, SequenceGroup):
+                if match_sequential_dfs(remaining_query, branch):
+                    # Found a match inside this ParallelGroup branch
+                    # Skip past this variant element and continue
+                    return _dfs_match(
+                        query_list,
+                        variant_list,
+                        q_end + 1,
+                        v_idx + 1,
+                        q_end,
+                        must_consume_all,
+                    )
+
     # No match at this position
     return False
 
