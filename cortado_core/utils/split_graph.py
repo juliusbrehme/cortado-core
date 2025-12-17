@@ -16,6 +16,8 @@ from cortado_core.utils.constants import ARTIFICAL_END_NAME, ARTIFICAL_START_NAM
 
 
 class Group(list):
+    list_length = list.__len__
+
     def __init__(
         self,
         lst: tuple = (),
@@ -132,9 +134,6 @@ class Group(list):
 
     def __lt__(self, other):
         return str(self) < str(other)
-
-    def list_length(self):
-        return len([0 for _ in self])
 
     def toHashSet(self):
         res = set()

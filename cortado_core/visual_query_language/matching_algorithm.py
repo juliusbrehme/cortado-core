@@ -14,7 +14,7 @@ from cortado_core.visual_query_language.matching_functions import match
 def check_start_point(query: List[Group], variant: List[Group]) -> bool:
     """Checks if the start point in the variant matches just after the start node in the query."""
 
-    if len(variant) == 0:
+    if variant.list_length() == 0:
         return False
 
     if not match(query[1], variant[0]):
@@ -26,7 +26,7 @@ def check_start_point(query: List[Group], variant: List[Group]) -> bool:
 def check_end_point(query: List[Group], variant: List[Group]) -> bool:
     """Checks if the end point in the variant matches just before the end node in the query."""
 
-    if len(variant) == 0:
+    if variant.list_length() == 0:
         return False
 
     if not match(query[-2], variant[-1]):
