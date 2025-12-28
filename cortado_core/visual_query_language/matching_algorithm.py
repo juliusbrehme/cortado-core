@@ -69,7 +69,10 @@ def match_sequential(query: SequenceGroup, variant: SequenceGroup) -> bool:
     candidates = []  # Possible candidates with unchecked subproblems
     subproblems = []  # Subproblems/Subtrees of possible candidate for later checking
 
-    idxQuery = 0 + (has_start_point or has_end_point)
+    offset = 1 if (has_start_point or has_end_point) else 0
+    idxTarget = query_length - 1 if (has_start_point and has_end_point) else query_length
+
+    idxQuery = offset
     idxVariant = 0
 
     while idxQuery < query_length and idxVariant < variant_length:
@@ -103,14 +106,17 @@ def match_sequential(query: SequenceGroup, variant: SequenceGroup) -> bool:
             continue
 
         if not match(query[idxQuery], variant[idxVariant]):
-            if idxQuery == 0 + (has_start_point or has_end_point):
-                idxVariant += 1
-            idxQuery = 0 + (has_start_point or has_end_point)
-            subproblems = []
             # Query has start point and there is a missmatch, return false
             # (same for end_point because we reverse the list)
             if has_start_point or has_end_point:
                 return False
+
+            # 1. Calculate how many items we matched in this current attempt: (idxQuery - offset)
+            # 2. Rewind idxVariant to the start of this attempt, then advance by 1 (Catch overlapping sequences)
+            idxVariant = idxVariant - (idxQuery - offset) + 1
+            idxQuery = offset
+            subproblems = []
+
 
         else:
             # Parallel are treated as subproblems -> only needs to be checked if the sequential parts match
@@ -121,7 +127,7 @@ def match_sequential(query: SequenceGroup, variant: SequenceGroup) -> bool:
             idxVariant += 1
 
             # End of query reached -> all sequential parts matched -> possible candiate found
-            if idxQuery == query_length:
+            if idxQuery == idxTarget:
                 # Match must be from start to end -> variant must also be fully consumed
                 if has_start_point and has_end_point:
                     if idxVariant == variant_length:
