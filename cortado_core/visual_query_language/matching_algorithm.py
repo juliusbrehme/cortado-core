@@ -70,7 +70,9 @@ def match_sequential(query: SequenceGroup, variant: SequenceGroup) -> bool:
     subproblems = []  # Subproblems/Subtrees of possible candidate for later checking
 
     offset = 1 if (has_start_point or has_end_point) else 0
-    idxTarget = query_length - 1 if (has_start_point and has_end_point) else query_length
+    idxTarget = (
+        query_length - 1 if (has_start_point and has_end_point) else query_length
+    )
 
     idxQuery = offset
     idxVariant = 0
@@ -116,7 +118,6 @@ def match_sequential(query: SequenceGroup, variant: SequenceGroup) -> bool:
             idxVariant = idxVariant - (idxQuery - offset) + 1
             idxQuery = offset
             subproblems = []
-
 
         else:
             # Parallel are treated as subproblems -> only needs to be checked if the sequential parts match
