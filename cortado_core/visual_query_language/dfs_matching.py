@@ -157,7 +157,50 @@ def _dfs_match(
             query_list, variant_list, q_idx + 1, v_idx + 1, q_end, must_consume_all
         )
 
-    # --- Handle leaf-level matching (LeafGroup, ChoiceGroup, WildcardGroup, etc.) ---
+    # --- Handle ChoiceGroup in query ---
+    if isinstance(current_query, ChoiceGroup):
+        # Try each choice option in order
+        for choice_option in current_query:
+            if isinstance(choice_option, SequenceGroup):
+                # Special handling: SequenceGroup option needs to match against 1+ variant elements
+                # Try different consumption counts using backtracking
+                for consume_count in range(1, len(variant_list) - v_idx + 1):
+                    # Create a temporary SequenceGroup from the variant elements
+                    variant_subseq = SequenceGroup(
+                        lst=variant_list[v_idx : v_idx + consume_count]
+                    )
+
+                    if match_sequential_dfs(choice_option, variant_subseq):
+                        # This choice option matched with consume_count elements
+                        # Continue with next query element and advanced variant index
+                        if _dfs_match(
+                            query_list,
+                            variant_list,
+                            q_idx + 1,
+                            v_idx + consume_count,
+                            q_end,
+                            must_consume_all,
+                        ):
+                            return True
+                        # Backtrack and try next consumption count or next choice option
+            else:
+                # Leaf-level choice option: match against current variant element
+                if match(choice_option, current_variant):
+                    # This choice option matched, continue with next query elements
+                    if _dfs_match(
+                        query_list,
+                        variant_list,
+                        q_idx + 1,
+                        v_idx + 1,
+                        q_end,
+                        must_consume_all,
+                    ):
+                        return True
+                    # Backtrack and try next choice option
+        # No choice option matched
+        return False
+
+    # --- Handle leaf-level matching (LeafGroup, WildcardGroup, etc.) ---
     # Use the match() function from matching_functions.py
     if match(current_query, current_variant):
         # Match succeeded, continue to next elements
