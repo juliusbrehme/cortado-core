@@ -48,9 +48,38 @@ def unfold_tree(tree_query: Group | List[Group]) -> List[Group]:
             new_trees = merge_and_flatten(new_trees, unfold_tree_list, parent_type)
             new_trees.extend(new_trees_copy)
         elif type(child) is LoopGroup:
+            # Generate variants for each repetition count from min_count to max_count
             unfold_tree_list = unfold_tree(child[0])
-            for _ in range(child.max_count):
-                new_trees = merge_and_flatten(new_trees, unfold_tree_list, parent_type)
+
+            min_count = child.min_count if child.min_count is not None else 1
+            max_count = child.max_count if child.max_count is not None else 1
+
+            max_count = min(
+                max_count, 200
+            )  # Cap max_count to prevent explosion of variants for infinite loops
+
+            # For each valid repetition count, create a separate path in the tree variants
+            # We need to branch: create multiple separate query variants
+            # inside is actual group object
+            # 2nd most inside is different path (if it contained choice for example) for that specific repetition count
+            # outermost is all different repetition counts combined
+            new_trees_by_count: List[List[List[Group]]] = []
+
+            for count in range(min_count, max_count + 1):
+                # For this specific count, repeat the loop content 'count' times
+                count_trees = copy.deepcopy(new_trees) if new_trees else []
+                for _ in range(count):
+                    count_trees = merge_and_flatten(
+                        count_trees, unfold_tree_list, parent_type
+                    )
+                new_trees_by_count.append(count_trees)
+
+            # Merge all the variants from different counts
+            # Each count produces separate variants that should all be tried
+            if new_trees_by_count:
+                new_trees = []
+                for count_variants in new_trees_by_count:
+                    new_trees.extend(count_variants)
         elif type(child) is SequenceGroup:
             unfold_tree_list = unfold_tree(child)
             new_trees = merge_and_flatten(new_trees, unfold_tree_list, parent_type)
