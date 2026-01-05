@@ -404,7 +404,23 @@ class VMCompiler:
             loop.list_length() == 1
         ), "LoopGroup with multiple children not supported yet"
         child_prog = self.compile_group(loop[0])
-        return child_prog * loop.min_count
+
+        # Minimum count part
+        min_prog = child_prog * loop.min_count
+
+        if loop.max_count is not None:
+            optional_count = loop.max_count - loop.min_count
+            optional_prog = [Instruction.SPLIT.value, 3, len(child_prog) + 3]
+            optional_prog.extend(child_prog)
+            max_prog = [i for _ in range(optional_count) for i in optional_prog]
+
+            return min_prog + max_prog
+
+        # Unbounded loop part
+        loop_prog = [Instruction.SPLIT.value, 3, len(child_prog) + 5]
+        loop_prog.extend(child_prog)
+        loop_prog.extend([Instruction.JUMP.value, -len(loop_prog)])
+        return min_prog + loop_prog
 
     def compile_anything(self) -> List[int]:
         return [
