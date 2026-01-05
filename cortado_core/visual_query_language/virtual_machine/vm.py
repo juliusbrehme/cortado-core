@@ -76,6 +76,11 @@ class VM:
                 while pc < len_prog:
                     instruction = prog[pc]
 
+                    # Prevent multiple threads in same state for same input position (stop epsilon loops)
+                    if visited[pc] == idx:
+                        break
+                    visited[pc] = idx
+
                     # read instruction
                     if instruction < 8:
                         # Instruction.MATCH_LEAF:
@@ -122,9 +127,7 @@ class VM:
 
                             pc += 2
 
-                        if visited[pc] != idx:
-                            visited[pc] = idx
-                            nlist.append(pc)
+                        nlist.append(pc)
                         break
 
                     # control flow instruction
@@ -167,14 +170,20 @@ class VM:
         nodes = self.nodes
         len_prog = len(prog)
 
-        visited = [-1] * len(self.prog)
         clist = [(0, None)]  # (pc, lazy_par)
         nlist = []
 
         for idx, el in enumerate(chain(variant, [None])):
+            visited = set()
             for pc, lazy_par in clist:
                 while pc < len_prog:
                     instruction = prog[pc]
+
+                    # Prevent multiple threads in same state for same input position (stop epsilon loops)
+                    state = (pc, lazy_par)
+                    if state in visited:
+                        break
+                    visited.add(state)
 
                     # read instruction
                     if instruction < 8:
@@ -227,9 +236,7 @@ class VM:
                             lazy_par = (prog[pc + 1], el)
                             pc += 2
 
-                        if visited[pc] != idx:
-                            visited[pc] = idx
-                            nlist.append((pc, lazy_par))
+                        nlist.append((pc, lazy_par))
                         break
 
                     # control flow instruction
