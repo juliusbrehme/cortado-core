@@ -23,6 +23,9 @@ class SolvingRun:
     num_anythings: int
     variant: ParallelGroup
 
+    def __str__(self):
+        return f"{[element.__class__.__name__ for element in self.queue]} | Assigned: {self.assigned} | Num Anythings: {self.num_anythings}"
+
 
 class ParallelSolver:
     def __init__(self, query: ParallelGroup, lazy: bool):
@@ -51,9 +54,9 @@ class ParallelSolver:
         for element in self.query:
             queue.append(element)
 
-        return self.match_element(SolvingRun(queue, assigned, 0, variant))
+        return self.match_next(SolvingRun(queue, assigned, 0, variant))
 
-    def match_element(self, run: SolvingRun) -> bool:
+    def match_next(self, run: SolvingRun) -> bool:
         if not run.queue:
             if run.num_anythings == 0:
                 return all(run.assigned)
@@ -78,7 +81,7 @@ class ParallelSolver:
                 variant_element = run.variant[i]
                 if match_fn(element, variant_element):
                     run.assigned[i] = True
-                    if self.match_element(run):
+                    if self.match_next(run):
                         return True
                     run.assigned[i] = False  # Backtrack
 
@@ -89,7 +92,7 @@ class ParallelSolver:
         elif etype is AnythingGroup:
             # Anything matches at least one unassigned element
             run.num_anythings += 1
-            if self.match_element(run):
+            if self.match_next(run):
                 return True
             run.num_anythings -= 1  # Backtrack
 
@@ -106,14 +109,43 @@ class ParallelSolver:
         ), "LoopGroup in ParallelSolver should contain a single element"
         loop_body = loop[0]
 
-        # Add all repetitions of the loop body
+        # MIN repetitions
         for _ in range(loop.min_count):
             run.queue.appendleft(loop_body)
 
-        if self.match_element(run):
+        if self.match_next(run):
             return True
 
-        # Backtrack case: remove one repetition and try again
+        # MAX repetitions
+        if loop.max_count is not None:
+            optional_reps = loop.max_count - loop.min_count
+            for _ in range(optional_reps):
+                run.queue.appendleft(loop_body)
+                if self.match_next(run):
+                    return True
+
+            # Backtrack
+            for _ in range(optional_reps):
+                run.queue.popleft()
+
+        else:
+            # Unlimited repetitions
+            reps = 0
+            while True:
+                reps += 1
+                run.queue.appendleft(loop_body)
+                if self.match_next(run):
+                    return True
+
+                # No more room for additional repetitions
+                if len(run.queue) > len(run.assigned):
+                    break
+
+            # Backtrack
+            for _ in range(reps):
+                run.queue.popleft()
+
+        # Backtrack
         for _ in range(loop.min_count):
             run.queue.popleft()
 
@@ -127,12 +159,12 @@ class ParallelSolver:
 
         # First try: include the optional body
         run.queue.appendleft(optional_body)
-        if self.match_element(run):
+        if self.match_next(run):
             return True
 
         # Second try: exclude the optional body
         run.queue.popleft()
-        return self.match_element(run)
+        return self.match_next(run)
 
     def match_sequence(self, run: SolvingRun) -> bool:
         assert self.sequence_vm is not None, "No sequence VM available for matching"
@@ -146,7 +178,8 @@ class ParallelSolver:
 
             variant_element = run.variant[i]
             if self.sequence_vm.run(variant_element):
-                return True
+                run.assigned[i] = True
+                return self.match_next(run)
             break  # There will be only one sequence in parallel group
 
         return False
