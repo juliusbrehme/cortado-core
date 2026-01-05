@@ -18,6 +18,7 @@ setup(
         "cortado_core.variant_query_language.grammars",
         "cortado_core.visual_query_language",
         "cortado_core.visual_query_language.relaxng",
+        "cortado_core.visual_query_language.virtual_machine",
         "cortado_core.alignments",
         "cortado_core.clustering",
         "cortado_core.alignments.infix_alignments",
