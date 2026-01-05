@@ -25,7 +25,7 @@ class SolvingRun:
 
 
 class ParallelSolver:
-    def __init__(self, query: ParallelGroup):
+    def __init__(self, query: ParallelGroup, lazy: bool):
         self.query = query
         self.query_length = query.list_length()
 
@@ -36,11 +36,12 @@ class ParallelSolver:
                 element = element[0]
 
             if isinstance(element, SequenceGroup):
+                # pylint: disable=import-outside-toplevel - prevents circular import
                 from cortado_core.visual_query_language.virtual_machine.vm import (
                     compile_vm,
-                )  # pylint: disable=import-outside-toplevel - prevents circular import
+                )
 
-                self.sequence_vm = compile_vm(element)
+                self.sequence_vm = compile_vm(element, lazy)
                 break  # Only one sequence per parallel
 
     def match(self, variant: ParallelGroup) -> bool:

@@ -1,5 +1,4 @@
-from typing import List
-
+from enum import Enum
 from cortado_core.utils.split_graph import SequenceGroup
 from cortado_core.visual_query_language.matching_algorithm import match_sequential
 from cortado_core.visual_query_language.dfs_matching import match_sequential_dfs
@@ -11,7 +10,6 @@ from cortado_core.visual_query_language.relaxng.variant import (
     build_variant as build_relaxng_variant,
 )
 from cortado_core.visual_query_language.virtual_machine.vm import compile_vm
-from enum import Enum
 
 
 class QueryType(Enum):
@@ -19,7 +17,7 @@ class QueryType(Enum):
     DFS = 2
     RELAXED_NG = 3
     VM = 4
-
+    VM_LAZY = 5
 
 
 class PatternQuery:
@@ -91,8 +89,8 @@ class RelaxNGQuery(PatternQuery):
 
 
 class VMQuery(PatternQuery):
-    def __init__(self, query: SequenceGroup):
-        self.vm = compile_vm(query)
+    def __init__(self, query: SequenceGroup, use_debt):
+        self.vm = compile_vm(query, use_debt)
 
         # print(query)
         # self.vm.print_prog()
@@ -101,7 +99,6 @@ class VMQuery(PatternQuery):
         # print("Check variant:")
         # print(variant)
         return self.vm.run(variant)
-
 
 
 def create_query_instance(
@@ -115,5 +112,7 @@ def create_query_instance(
     elif query_type == QueryType.RELAXED_NG:
         return RelaxNGQuery(query)
     elif query_type == QueryType.VM:
-        return VMQuery(query)
+        return VMQuery(query, False)
+    elif query_type == QueryType.VM_LAZY:
+        return VMQuery(query, True)
     return CustomTreeCompareQuery(query)

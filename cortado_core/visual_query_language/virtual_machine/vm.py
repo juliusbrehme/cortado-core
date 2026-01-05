@@ -17,7 +17,9 @@ from cortado_core.utils.split_graph import (
     LoopGroup,
 )
 from cortado_core.visual_query_language.matching_functions import match
-from cortado_core.visual_query_language.virtual_machine.parallel_solver import ParallelSolver
+from cortado_core.visual_query_language.virtual_machine.parallel_solver import (
+    ParallelSolver,
+)
 
 
 class Instruction(Enum):
@@ -49,8 +51,12 @@ class VM:
         self.nodes = nodes
         self.has_start = has_start
         self.has_end = has_end
+        self.lazy = False
 
     def run(self, variant: SequenceGroup) -> bool:
+        if self.lazy:
+            return self.run_lazy(variant)
+
         # Bring types into local scope for performance
         tLeafGroup = LeafGroup
         tParallelGroup = ParallelGroup
@@ -75,8 +81,9 @@ class VM:
                         # Instruction.MATCH_LEAF:
                         if instruction == 1:
                             if (
-                                type(el) is not tLeafGroup
-                            ):  # pylint: disable=unidiomatic-typecheck
+                                type(el)
+                                is not tLeafGroup  # pylint: disable=unidiomatic-typecheck
+                            ):
                                 break
                             if nodes[prog[pc + 1]][0] != el[0]:
                                 break
@@ -95,8 +102,9 @@ class VM:
                         # Instruction.READ_LEAF:
                         elif instruction == 4:
                             if (
-                                type(el) is not tLeafGroup
-                            ):  # pylint: disable=unidiomatic-typecheck
+                                type(el)
+                                is not tLeafGroup  # pylint: disable=unidiomatic-typecheck
+                            ):
                                 break
 
                             pc += 1
@@ -104,11 +112,14 @@ class VM:
                         # Instruction.MATCH_PARALLEL:
                         elif instruction == 3:
                             if (
-                                type(el) is not tParallelGroup
-                            ):  # pylint: disable=unidiomatic-typecheck
+                                type(el)
+                                is not tParallelGroup  # pylint: disable=unidiomatic-typecheck
+                            ):
                                 break
+
                             if not nodes[prog[pc + 1]].match(el):
                                 break
+
                             pc += 2
 
                         if visited[pc] != idx:
@@ -120,9 +131,8 @@ class VM:
                     else:
                         # Instruction.SPLIT:
                         if instruction == 9:
-                            clist.append(
-                                pc + prog[pc + 2]
-                            )  # pylint: disable=modified-iterating-list
+                            # pylint: disable=modified-iterating-list
+                            clist.append(pc + prog[pc + 2])
                             pc += prog[pc + 1]
 
                         # Instruction.JUMP:
@@ -138,6 +148,119 @@ class VM:
 
             if not has_start:
                 nlist.append(0)
+
+            elif not nlist:
+                return False
+
+            clist, nlist = nlist, clist
+            nlist.clear()
+        return False
+
+    def run_lazy(self, variant: SequenceGroup) -> bool:
+        # Bring types into local scope for performance
+        tLeafGroup = LeafGroup
+        tParallelGroup = ParallelGroup
+        match_node = match
+        has_start = self.has_start
+        has_end = self.has_end
+        prog = self.prog
+        nodes = self.nodes
+        len_prog = len(prog)
+
+        visited = [-1] * len(self.prog)
+        clist = [(0, None)]  # (pc, lazy_par)
+        nlist = []
+
+        for idx, el in enumerate(chain(variant, [None])):
+            for pc, lazy_par in clist:
+                while pc < len_prog:
+                    instruction = prog[pc]
+
+                    # read instruction
+                    if instruction < 8:
+                        # Instruction.MATCH_LEAF:
+                        if instruction == 1:
+                            if (
+                                type(el)
+                                is not tLeafGroup  # pylint: disable=unidiomatic-typecheck
+                            ):
+                                break
+                            if nodes[prog[pc + 1]][0] != el[0]:
+                                break
+                            pc += 2
+
+                        # Instruction.READ_ANY:
+                        elif instruction == 5:
+                            pc += 1
+
+                        # Instruction.MATCH_NODE:
+                        elif instruction == 2:
+                            if not match_node(nodes[prog[pc + 1]], el):
+                                break
+                            pc += 2
+
+                        # Instruction.READ_LEAF:
+                        elif instruction == 4:
+                            if (
+                                type(el)
+                                is not tLeafGroup  # pylint: disable=unidiomatic-typecheck
+                            ):
+                                break
+
+                            pc += 1
+
+                        # Instruction.MATCH_PARALLEL:
+                        elif instruction == 3:
+                            if (
+                                type(el)
+                                is not tParallelGroup  # pylint: disable=unidiomatic-typecheck
+                            ):
+                                break
+
+                            # We currently save only one lazy parallel (the last one)
+                            if lazy_par is not None:
+                                qnode, vnode = lazy_par
+                                if not nodes[qnode].match(vnode):
+                                    break
+
+                            # Save current parallel as lazy for later checking
+                            lazy_par = (prog[pc + 1], el)
+                            pc += 2
+
+                        if visited[pc] != idx:
+                            visited[pc] = idx
+                            nlist.append((pc, lazy_par))
+                        break
+
+                    # control flow instruction
+                    else:
+                        # Instruction.SPLIT:
+                        if instruction == 9:
+                            # pylint: disable=modified-iterating-list
+                            clist.append((pc + prog[pc + 2], lazy_par))
+                            pc += prog[pc + 1]
+
+                        # Instruction.JUMP:
+                        elif instruction == 8:
+                            offset = prog[pc + 1]
+                            pc += offset
+
+                        # Instruction.ACCEPT:
+                        elif instruction == 10:
+                            if has_end and el is not None:
+                                break
+
+                            # If any parallel was lazy, check it now
+                            if lazy_par is not None:
+                                qnode, vnode = lazy_par
+                                if not nodes[qnode].match(vnode):
+                                    break
+
+                            return True
+
+            if not has_start:
+                # Take any element as a potential start
+                nlist.append((0, None))
 
             elif not nlist:
                 return False
@@ -174,9 +297,9 @@ class VM:
                     pc += 1
 
 
-def compile_vm(query: SequenceGroup) -> VM:
+def compile_vm(query: SequenceGroup, lazy: bool) -> VM:
     compiler = VMCompiler()
-    compiler.compile(query)
+    compiler.compile(query, lazy)
     return compiler.vm
 
 
@@ -184,9 +307,10 @@ class VMCompiler:
     def __init__(self):
         self.vm = VM([], [], False, False)
 
-    def compile(self, query: SequenceGroup) -> List[int]:
+    def compile(self, query: SequenceGroup, lazy: bool) -> List[int]:
         self.vm.has_start = isinstance(query[0], StartGroup)
         self.vm.has_end = isinstance(query[-1], EndGroup)
+        self.vm.lazy = lazy
 
         if self.vm.has_start:
             query = SequenceGroup(query[1:])
@@ -265,7 +389,7 @@ class VMCompiler:
         return prog
 
     def compile_parallel(self, parallel: ParallelGroup) -> List[int]:
-        self.vm.nodes.append(ParallelSolver(parallel))
+        self.vm.nodes.append(ParallelSolver(parallel, lazy=self.vm.lazy))
         return [Instruction.MATCH_PARALLEL.value, len(self.vm.nodes) - 1]
 
     def compile_wildcard(self) -> List[int]:
