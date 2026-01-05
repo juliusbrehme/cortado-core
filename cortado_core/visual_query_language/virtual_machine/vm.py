@@ -415,19 +415,56 @@ class VMCompiler:
         # Minimum count part
         min_prog = child_prog * loop.min_count
 
-        if loop.max_count is not None:
-            optional_count = loop.max_count - loop.min_count
-            optional_prog = [Instruction.SPLIT.value, 3, len(child_prog) + 3]
-            optional_prog.extend(child_prog)
-            max_prog = [i for _ in range(optional_count) for i in optional_prog]
+        if loop.max_count is None:
+            # Unbounded loop part
+            loop_prog = [Instruction.SPLIT.value, 3, len(child_prog) + 5]
+            loop_prog.extend(child_prog)
+            loop_prog.extend([Instruction.JUMP.value, -len(loop_prog)])
+            return min_prog + loop_prog
 
-            return min_prog + max_prog
+        # Logarithmic Unrolling for Bounded Loop (see commit message)
+        optional_count = loop.max_count - loop.min_count
+        if optional_count == 0:
+            return min_prog
 
-        # Unbounded loop part
-        loop_prog = [Instruction.SPLIT.value, 3, len(child_prog) + 5]
-        loop_prog.extend(child_prog)
-        loop_prog.extend([Instruction.JUMP.value, -len(loop_prog)])
-        return min_prog + loop_prog
+        def build_lt(number: int, child_prog: List[int]) -> List[int]:
+            """
+            Builds a match program that matches less than 'number' repetitions of child_prog
+
+            :param number: The number of repetitions to be less than. It is expected to be a power of 2
+            """
+            prog = []
+            number >>= 1
+            while number > 0:
+                rep = child_prog * number
+                prog.extend([Instruction.SPLIT.value, 3, 3 + len(rep)])
+                prog.extend(rep)
+                number >>= 1
+            return prog
+
+        max_prog = []
+
+        # Iteratively build components beginning with the smallest
+        power = 1
+        while optional_count > 0:
+            if (optional_count & 1) == 1:
+                # Build a binary component
+                exact_match = child_prog * power
+                lt_match = build_lt(power, child_prog)
+
+                component_prog = [Instruction.SPLIT.value, 3, 3 + len(lt_match) + 2]
+                component_prog.extend(lt_match)
+                component_prog.extend(
+                    [Instruction.JUMP.value, 2 + len(exact_match) + len(max_prog)]
+                )
+                component_prog.extend(exact_match)
+                max_prog = component_prog + max_prog  # Extend at front
+
+            # Next bit
+            optional_count >>= 1
+            power <<= 1
+
+        return min_prog + max_prog
 
     def compile_anything(self) -> List[int]:
         return [
