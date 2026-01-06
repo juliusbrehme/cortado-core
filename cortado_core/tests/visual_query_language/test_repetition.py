@@ -59,63 +59,76 @@ class TestExactRepetition:
         assert not query.match(variant)
 
 
-# class TestRangeRepetition:
-#     @pytest.fixture
-#     def query(self, query_type):
-#         return create_query_instance(
-#             SequenceGroup(
-#                 lst=[
-#                     LeafGroup(lst=["a"]),
-#                     LoopGroup(lst=[LeafGroup(lst=["b"])], min_count=2, max_count=4),
-#                     LeafGroup(lst=["c"]),
-#                 ]
-#             ),
-#             query_type=query_type,
-#         )
+class TestRangeRepetition:
+    @pytest.fixture
+    def query(self, query_type):
+        return create_query_instance(
+            SequenceGroup(
+                lst=[
+                    LeafGroup(lst=["a"]),
+                    LoopGroup(lst=[LeafGroup(lst=["b"])], min_count=2, max_count=4),
+                    LeafGroup(lst=["c"]),
+                ]
+            ),
+            query_type=query_type,
+        )
 
-#     def test_min_repetitions(self, query):
-#         variant = SequenceGroup(
-#             lst=[
-#                 LeafGroup(lst=["a"]),
-#                 LeafGroup(lst=["b"]),
-#                 LeafGroup(lst=["b"]),
-#                 LeafGroup(lst=["c"]),
-#             ]
-#         )
+    def test_min_repetitions(self, query):
+        variant = SequenceGroup(
+            lst=[
+                LeafGroup(lst=["a"]),
+                LeafGroup(lst=["b"]),
+                LeafGroup(lst=["b"]),
+                LeafGroup(lst=["c"]),
+            ]
+        )
 
-#         assert query.match(variant)
+        assert query.match(variant)
 
-#     def test_max_repetitions(self, query):
-#         variant = SequenceGroup(
-#             lst=[
-#                 LeafGroup(lst=["a"]),
-#                 LeafGroup(lst=["b"]),
-#                 LeafGroup(lst=["b"]),
-#                 LeafGroup(lst=["b"]),
-#                 LeafGroup(lst=["b"]),
-#                 LeafGroup(lst=["c"]),
-#             ]
-#         )
+    def test_middle_repetitions(self, query):
+        variant = SequenceGroup(
+            lst=[
+                LeafGroup(lst=["a"]),
+                LeafGroup(lst=["b"]),
+                LeafGroup(lst=["b"]),
+                LeafGroup(lst=["b"]),
+                LeafGroup(lst=["c"]),
+            ]
+        )
 
-#         assert query.match(variant)
+        assert query.match(variant)
 
-#     def test_too_few_repetitions(self, query):
-#         variant = SequenceGroup(
-#             lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["b"]), LeafGroup(lst=["c"])]
-#         )
+    def test_max_repetitions(self, query):
+        variant = SequenceGroup(
+            lst=[
+                LeafGroup(lst=["a"]),
+                LeafGroup(lst=["b"]),
+                LeafGroup(lst=["b"]),
+                LeafGroup(lst=["b"]),
+                LeafGroup(lst=["b"]),
+                LeafGroup(lst=["c"]),
+            ]
+        )
 
-#         assert not query.match(variant)
+        assert query.match(variant)
 
-#     def test_too_many_repetitions(self, query):
-#         variant = SequenceGroup(
-#             lst=[
-#                 LeafGroup(lst=["a"]),
-#                 LeafGroup(lst=["b"]),
-#                 LeafGroup(lst=["b"]),
-#                 LeafGroup(lst=["b"]),
-#                 LeafGroup(lst=["b"]),
-#                 LeafGroup(lst=["b"]),
-#                 LeafGroup(lst=["c"]),
-#             ]
-#         )
-#         assert not query.match(variant)
+    def test_too_few_repetitions(self, query):
+        variant = SequenceGroup(
+            lst=[LeafGroup(lst=["a"]), LeafGroup(lst=["b"]), LeafGroup(lst=["c"])]
+        )
+
+        assert not query.match(variant)
+
+    def test_too_many_repetitions(self, query):
+        variant = SequenceGroup(
+            lst=[
+                LeafGroup(lst=["a"]),
+                LeafGroup(lst=["b"]),
+                LeafGroup(lst=["b"]),
+                LeafGroup(lst=["b"]),
+                LeafGroup(lst=["b"]),
+                LeafGroup(lst=["b"]),
+                LeafGroup(lst=["c"]),
+            ]
+        )
+        assert not query.match(variant)
