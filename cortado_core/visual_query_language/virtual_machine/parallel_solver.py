@@ -1,4 +1,6 @@
-from typing import Tuple, Deque, List
+import copy
+import queue
+from typing import Deque, List
 from collections import deque
 from dataclasses import dataclass
 from cortado_core.utils.split_graph import (
@@ -22,6 +24,7 @@ class SolvingRun:
     assigned: List[bool]
     num_anythings: int
     variant: ParallelGroup
+    num_attempts: int = 0
 
     def __str__(self):
         return f"{[element.__class__.__name__ for element in self.queue]} | Assigned: {self.assigned} | Num Anythings: {self.num_anythings}"
@@ -34,11 +37,20 @@ class ParallelSolver:
 
         # If query containts a sequence create a vm for it
         self.sequence_vm = None
+        self.queue = deque()
         for element in query:
-            if isinstance(element, OptionalGroup):
+            etype = type(element)
+            if etype in (LeafGroup, FallthroughGroup, AnythingGroup, SequenceGroup):
+                # Match these mandatory first so in case of backtracking we dont have to try them again
+                self.queue.appendleft(element)
+            else:
+                self.queue.append(element)
+
+            # Find sequence group
+            if etype is OptionalGroup:
                 element = element[0]
 
-            if isinstance(element, SequenceGroup):
+            if etype is SequenceGroup:
                 # pylint: disable=import-outside-toplevel - prevents circular import
                 from cortado_core.visual_query_language.virtual_machine.vm import (
                     compile_vm,
@@ -50,17 +62,18 @@ class ParallelSolver:
     def match(self, variant: ParallelGroup) -> bool:
         assigned = [False] * variant.list_length()
 
-        queue = deque()
-        for element in self.query:
-            queue.append(element)
-
-        return self.match_next(SolvingRun(queue, assigned, 0, variant))
+        return self.match_next(SolvingRun(copy.copy(self.queue), assigned, 0, variant))
 
     def match_next(self, run: SolvingRun) -> bool:
         if not run.queue:
             if run.num_anythings == 0:
                 return all(run.assigned)
             return run.assigned.count(False) - run.num_anythings >= 0
+
+        run.num_attempts += 1
+        assert (
+            run.num_attempts < 100000
+        ), "Too many attempts in ParallelSolver, possible infinite loop"
 
         element = run.queue.popleft()
         etype = type(element)
@@ -73,17 +86,17 @@ class ParallelSolver:
             if self.match_optional(element, run):
                 return True
 
-        elif etype in (LeafGroup, FallthroughGroup, WildcardGroup, ChoiceGroup):
-            for i, _val in enumerate(run.assigned):
-                if _val:
-                    continue
+        elif etype in (LeafGroup, FallthroughGroup):
+            # These elements match exactly their counterpart in the variant
+            # We only need to find the first unassigned element that matches
+            if self.match_exact(element, run):
+                return True
 
-                variant_element = run.variant[i]
-                if match_fn(element, variant_element):
-                    run.assigned[i] = True
-                    if self.match_next(run):
-                        return True
-                    run.assigned[i] = False  # Backtrack
+        elif etype in (WildcardGroup, ChoiceGroup):
+            # These elements can match multiple various elements in the variant
+            # We need to try all possible matches so we do not "steal" matches from later elements
+            if self.match_various(element, run):
+                return True
 
         elif etype is SequenceGroup:
             if self.match_sequence(run):
@@ -101,6 +114,33 @@ class ParallelSolver:
 
         # Backtrack
         run.queue.appendleft(element)
+        return False
+
+    def match_exact(self, element: Group, run: SolvingRun) -> bool:
+        for i, _val in enumerate(run.assigned):
+            if _val:
+                continue
+
+            variant_element = run.variant[i]
+            if match_fn(element, variant_element):
+                run.assigned[i] = True
+                if self.match_next(run):
+                    return True
+                run.assigned[i] = False  # Backtrack
+                break
+        return False
+
+    def match_various(self, element: Group, run: SolvingRun) -> bool:
+        for i, _val in enumerate(run.assigned):
+            if _val:
+                continue
+
+            variant_element = run.variant[i]
+            if match_fn(element, variant_element):
+                run.assigned[i] = True
+                if self.match_next(run):
+                    return True
+                run.assigned[i] = False  # Backtrack
         return False
 
     def match_loop(self, loop: LoopGroup, run: SolvingRun) -> bool:
