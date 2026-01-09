@@ -23,14 +23,14 @@ from cortado_core.visual_query_language.virtual_machine.parallel_solver import (
 
 
 class Instruction(Enum):
-    MATCH_LEAF = 1
-    MATCH_NODE = 2
-    MATCH_PARALLEL = 3
-    READ_LEAF = 4
-    READ_ANY = 5
-    JUMP = 8  # 8 + 0
-    SPLIT = 9  # 8 + 1
-    ACCEPT = 10  # 8 + 2
+    MATCH_LEAF = 0
+    MATCH_NODE = 1
+    MATCH_PARALLEL = 2
+    READ_LEAF = 3
+    READ_ANY = 4
+    JUMP = 5
+    SPLIT = 6
+    ACCEPT = 7
 
 
 class ThreadResult(Enum):
@@ -43,12 +43,10 @@ class VM:
     def __init__(
         self,
         prog: List[int],
-        nodes: List[Group | ParallelSolver],
         has_start,
         has_end: bool,
     ):
         self.prog = prog
-        self.nodes = nodes
         self.has_start = has_start
         self.has_end = has_end
         self.lazy = False
@@ -64,87 +62,84 @@ class VM:
         has_start = self.has_start
         has_end = self.has_end
         prog = self.prog
-        nodes = self.nodes
-        len_prog = len(prog)
 
         visited = [-1] * len(self.prog)
         clist = [0]
         nlist = []
 
         for idx, el in enumerate(chain(variant, [None])):
+            etype = type(el)
+            is_leaf = etype is tLeafGroup
+            is_parallel = etype is tParallelGroup
             for pc in clist:
-                while pc < len_prog:
+                while True:
                     instruction = prog[pc]
 
                     # Prevent multiple threads in same state for same input position (stop epsilon loops)
-                    if visited[pc] == idx:
-                        break
                     visited[pc] = idx
 
                     # read instruction
-                    if instruction < 8:
+                    if instruction < 5:
                         # Instruction.MATCH_LEAF:
-                        if instruction == 1:
-                            if (
-                                type(el)
-                                is not tLeafGroup  # pylint: disable=unidiomatic-typecheck
-                            ):
+                        if instruction == 0:
+                            if not is_leaf:
                                 break
-                            if nodes[prog[pc + 1]][0] != el[0]:
+                            if prog[pc + 1][0] != el[0]:
                                 break
                             pc += 2
 
                         # Instruction.READ_ANY:
-                        elif instruction == 5:
+                        elif instruction == 4:
                             pc += 1
 
                         # Instruction.MATCH_NODE:
-                        elif instruction == 2:
-                            if not match_node(nodes[prog[pc + 1]], el):
+                        elif instruction == 1:
+                            if not match_node(prog[pc + 1], el):
                                 break
                             pc += 2
 
                         # Instruction.READ_LEAF:
-                        elif instruction == 4:
-                            if (
-                                type(el)
-                                is not tLeafGroup  # pylint: disable=unidiomatic-typecheck
-                            ):
+                        elif instruction == 3:
+                            if not is_leaf:
                                 break
-
                             pc += 1
 
                         # Instruction.MATCH_PARALLEL:
-                        elif instruction == 3:
-                            if (
-                                type(el)
-                                is not tParallelGroup  # pylint: disable=unidiomatic-typecheck
-                            ):
+                        elif instruction == 2:
+                            if not is_parallel:
                                 break
-
-                            if not nodes[prog[pc + 1]].match(el):
+                            if not prog[pc + 1].match(el):
                                 break
-
                             pc += 2
 
-                        nlist.append(pc)
+                        # Check for duplicate threads in next input
+                        if visited[pc] != idx + 1:
+                            nlist.append(pc)
                         break
 
                     # control flow instruction
                     else:
                         # Instruction.SPLIT:
-                        if instruction == 9:
-                            # pylint: disable=modified-iterating-list
-                            clist.append(pc + prog[pc + 2])
-                            pc += prog[pc + 1]
+                        if instruction == 6:
+                            new_thread1 = pc + prog[pc + 1]
+                            new_thread2 = pc + prog[pc + 2]
+                            if visited[new_thread2] != idx:
+                                # pylint: disable=modified-iterating-list
+                                clist.append(new_thread2)
+                            if visited[new_thread1] != idx:
+                                pc = new_thread1
+                            else:
+                                break
 
                         # Instruction.JUMP:
-                        elif instruction == 8:
-                            offset = prog[pc + 1]
-                            pc += offset
+                        elif instruction == 5:
+                            new_pos = pc + prog[pc + 1]
+                            if visited[new_pos] == idx:
+                                break
+                            pc = new_pos
 
                         # Instruction.ACCEPT:
-                        elif instruction == 10:
+                        elif instruction == 7:
                             if has_end and el is not None:
                                 break
                             return True
@@ -156,7 +151,7 @@ class VM:
                 return False
 
             clist, nlist = nlist, clist
-            nlist.clear()
+            nlist = []
         return False
 
     def run_lazy(self, variant: SequenceGroup) -> bool:
@@ -167,113 +162,104 @@ class VM:
         has_start = self.has_start
         has_end = self.has_end
         prog = self.prog
-        nodes = self.nodes
-        len_prog = len(prog)
 
-        clist = [(0, None)]  # (pc, lazy_par)
+        clist = [(0, -1, -1)]  # (pc, lazy_qnode, lazy_vnode)
         nlist = []
 
         for idx, el in enumerate(chain(variant, [None])):
             visited = set()
-            for pc, lazy_par in clist:
-                while pc < len_prog:
+            for pc, lazy_qnode, lazy_vnode in clist:
+                etype = type(el)
+                is_leaf = etype is tLeafGroup
+                is_parallel = etype is tParallelGroup
+                while True:
                     instruction = prog[pc]
 
                     # Prevent multiple threads in same state for same input position (stop epsilon loops)
-                    state = (pc, lazy_par)
+                    state = (pc, lazy_qnode, lazy_vnode)
                     if state in visited:
                         break
                     visited.add(state)
 
                     # read instruction
-                    if instruction < 8:
+                    if instruction < 5:
                         # Instruction.MATCH_LEAF:
-                        if instruction == 1:
-                            if (
-                                type(el)
-                                is not tLeafGroup  # pylint: disable=unidiomatic-typecheck
-                            ):
+                        if instruction == 0:
+                            if not is_leaf:
                                 break
-                            if nodes[prog[pc + 1]][0] != el[0]:
+                            if prog[pc + 1][0] != el[0]:
                                 break
                             pc += 2
 
                         # Instruction.READ_ANY:
-                        elif instruction == 5:
+                        elif instruction == 4:
                             pc += 1
 
                         # Instruction.MATCH_NODE:
-                        elif instruction == 2:
-                            if not match_node(nodes[prog[pc + 1]], el):
+                        elif instruction == 1:
+                            if not match_node(prog[pc + 1], el):
                                 break
                             pc += 2
 
                         # Instruction.READ_LEAF:
-                        elif instruction == 4:
-                            if (
-                                type(el)
-                                is not tLeafGroup  # pylint: disable=unidiomatic-typecheck
-                            ):
+                        elif instruction == 3:
+                            if not is_leaf:
                                 break
 
                             pc += 1
 
                         # Instruction.MATCH_PARALLEL:
-                        elif instruction == 3:
-                            if (
-                                type(el)
-                                is not tParallelGroup  # pylint: disable=unidiomatic-typecheck
-                            ):
+                        elif instruction == 2:
+                            if not is_parallel:
                                 break
 
                             # We currently save only one lazy parallel (the last one)
-                            if lazy_par is not None:
-                                qnode, vnode = lazy_par
-                                if not nodes[qnode].match(vnode):
+                            if lazy_qnode > -1:
+                                if not prog[lazy_qnode].match(variant[lazy_vnode]):
                                     break
 
                             # Save current parallel as lazy for later checking
-                            lazy_par = (prog[pc + 1], el)
+                            # Were only use int numbers for faster hashing in the visited set
+                            lazy_qnode, lazy_vnode = (pc + 1, idx)
                             pc += 2
 
-                        nlist.append((pc, lazy_par))
+                        nlist.append((pc, lazy_qnode, lazy_vnode))
                         break
 
                     # control flow instruction
                     else:
                         # Instruction.SPLIT:
-                        if instruction == 9:
+                        if instruction == 6:
                             # pylint: disable=modified-iterating-list
-                            clist.append((pc + prog[pc + 2], lazy_par))
+                            clist.append((pc + prog[pc + 2], lazy_qnode, lazy_vnode))
                             pc += prog[pc + 1]
 
                         # Instruction.JUMP:
-                        elif instruction == 8:
+                        elif instruction == 5:
                             offset = prog[pc + 1]
                             pc += offset
 
                         # Instruction.ACCEPT:
-                        elif instruction == 10:
+                        elif instruction == 7:
                             if has_end and el is not None:
                                 break
 
                             # If any parallel was lazy, check it now
-                            if lazy_par is not None:
-                                qnode, vnode = lazy_par
-                                if not nodes[qnode].match(vnode):
+                            if lazy_qnode > -1:
+                                if not prog[lazy_qnode].match(variant[lazy_vnode]):
                                     break
 
                             return True
 
             if not has_start:
                 # Take any element as a potential start
-                nlist.append((0, None))
+                nlist.append((0, -1, -1))
 
             elif not nlist:
                 return False
 
             clist, nlist = nlist, clist
-            nlist.clear()
+            nlist = []
         return False
 
     def print_prog(self):
@@ -283,8 +269,7 @@ class VM:
             print(f"{pc}: {instruction.name}", end=" ")
             match instruction:
                 case Instruction.MATCH_LEAF | Instruction.MATCH_NODE:
-                    node_index = self.prog[pc + 1]
-                    print(f"{self.nodes[node_index]}")
+                    print(self.prog[pc + 1])
                     pc += 2
                 case Instruction.MATCH_PARALLEL:
                     node_index = self.prog[pc + 1]
@@ -312,7 +297,7 @@ def compile_vm(query: SequenceGroup, lazy: bool) -> VM:
 
 class VMCompiler:
     def __init__(self):
-        self.vm = VM([], [], False, False)
+        self.vm = VM([], False, False)
 
     def compile(self, query: SequenceGroup, lazy: bool) -> List[int]:
         self.vm.has_start = isinstance(query[0], StartGroup)
@@ -379,12 +364,10 @@ class VMCompiler:
         return prog
 
     def compile_leaf(self, leaf: LeafGroup) -> List[int]:
-        self.vm.nodes.append(leaf)
-        return [Instruction.MATCH_LEAF.value, len(self.vm.nodes) - 1]
+        return [Instruction.MATCH_LEAF.value, leaf]
 
     def compile_fallthrough(self, fallthrough: FallthroughGroup) -> List[int]:
-        self.vm.nodes.append(fallthrough)
-        return [Instruction.MATCH_NODE.value, len(self.vm.nodes) - 1]
+        return [Instruction.MATCH_NODE.value, fallthrough]
 
     def compile_optional(self, optional: OptionalGroup) -> List[int]:
         assert (
@@ -396,15 +379,16 @@ class VMCompiler:
         return prog
 
     def compile_parallel(self, parallel: ParallelGroup) -> List[int]:
-        self.vm.nodes.append(ParallelSolver(parallel, lazy=self.vm.lazy))
-        return [Instruction.MATCH_PARALLEL.value, len(self.vm.nodes) - 1]
+        return [
+            Instruction.MATCH_PARALLEL.value,
+            ParallelSolver(parallel, lazy=self.vm.lazy),
+        ]
 
     def compile_wildcard(self) -> List[int]:
         return [Instruction.READ_LEAF.value]
 
     def compile_choice(self, choice: ChoiceGroup) -> List[int]:
-        self.vm.nodes.append(choice)
-        return [Instruction.MATCH_NODE.value, len(self.vm.nodes) - 1]
+        return [Instruction.MATCH_NODE.value, choice]
 
     def compile_loop(self, loop: LoopGroup) -> List[int]:
         assert (
@@ -422,47 +406,15 @@ class VMCompiler:
             loop_prog.extend([Instruction.JUMP.value, -len(loop_prog)])
             return min_prog + loop_prog
 
-        # Logarithmic Unrolling for Bounded Loop (see commit message)
         optional_count = loop.max_count - loop.min_count
         if optional_count == 0:
             return min_prog
 
-        def build_lt(number: int, child_prog: List[int]) -> List[int]:
-            """
-            Builds a match program that matches less than 'number' repetitions of child_prog
-
-            :param number: The number of repetitions to be less than. It is expected to be a power of 2
-            """
-            prog = []
-            number >>= 1
-            while number > 0:
-                rep = child_prog * number
-                prog.extend([Instruction.SPLIT.value, 3, 3 + len(rep)])
-                prog.extend(rep)
-                number >>= 1
-            return prog
-
+        # Bounded unrolling of the loop
         max_prog = []
-
-        # Iteratively build components beginning with the smallest
-        power = 1
-        while optional_count > 0:
-            if (optional_count & 1) == 1:
-                # Build a binary component
-                exact_match = child_prog * power
-                lt_match = build_lt(power, child_prog)
-
-                component_prog = [Instruction.SPLIT.value, 3, 3 + len(lt_match) + 2]
-                component_prog.extend(lt_match)
-                component_prog.extend(
-                    [Instruction.JUMP.value, 2 + len(exact_match) + len(max_prog)]
-                )
-                component_prog.extend(exact_match)
-                max_prog = component_prog + max_prog  # Extend at front
-
-            # Next bit
-            optional_count >>= 1
-            power <<= 1
+        for i in range(optional_count, 0, -1):
+            max_prog.extend([Instruction.SPLIT.value, 3, i * (3 + len(child_prog))])
+            max_prog.extend(child_prog)
 
         return min_prog + max_prog
 
