@@ -215,3 +215,28 @@ class TestChoiceParallel:
         )
 
         assert query.match(variant)
+
+
+class TestLargeParallel:
+    @pytest.fixture
+    def query(self, query_type):
+        return create_query_instance(
+            SequenceGroup(
+                [ParallelGroup(lst=[LeafGroup(["a"])] * 10 + [LeafGroup(["b"])])]
+            ),
+            query_type=query_type,
+        )
+
+    def test_match(self, query):
+        variant = SequenceGroup(
+            [ParallelGroup(lst=[LeafGroup(["a"])] * 10 + [LeafGroup(["b"])])]
+        )
+
+        assert query.match(variant)
+
+    def test_missing_last_element(self, query):
+        variant = SequenceGroup(
+            [ParallelGroup(lst=[LeafGroup(["a"])] * 10 + [LeafGroup(["c"])])]
+        )
+
+        assert not query.match(variant)
