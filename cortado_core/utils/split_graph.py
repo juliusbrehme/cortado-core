@@ -88,11 +88,12 @@ class Group(list):
             return LeafGroup(lst=serialized["leaf"])
 
         if "loop" in serialized and isinstance(serialized["loop"], List):
-            repeat_count = serialized.get("repeat_count", None)
+            repeat_count_min = serialized.get("repeat_count_min", None)
+            repeat_count_max = serialized.get("repeat_count_max", None)
             return LoopGroup(
                 lst=[Group.deserialize(group) for group in serialized["loop"]],
-                min_count=repeat_count,
-                max_count=repeat_count,
+                min_count=repeat_count_min,
+                max_count=repeat_count_max,
             )
 
         if "optional" in serialized and isinstance(serialized["optional"], list):
