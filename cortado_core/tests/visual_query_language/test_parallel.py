@@ -227,13 +227,16 @@ class TestLargeParallel:
             query_type=query_type,
         )
 
+    @pytest.mark.timeout(5)
     def test_match(self, query):
         variant = SequenceGroup(
             [ParallelGroup(lst=[LeafGroup(["a"])] * 10 + [LeafGroup(["b"])])]
         )
 
+
         assert query.match(variant)
 
+    @pytest.mark.timeout(5)
     def test_missing_last_element(self, query):
         variant = SequenceGroup(
             [ParallelGroup(lst=[LeafGroup(["a"])] * 10 + [LeafGroup(["c"])])]

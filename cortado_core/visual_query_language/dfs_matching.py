@@ -289,6 +289,12 @@ def match_parallel(query: ParallelGroup, variant: ParallelGroup) -> bool:
                     # Backtrack: remove from used set and try next variant branch
                     used.remove(v_idx)
 
+                    if isinstance(q_branch, FallthroughGroup) or isinstance(
+                        q_branch, LeafGroup
+                    ):
+                        # No need to try further variant branches for FallthroughGroup or LeafGroup
+                        break
+
         return False
 
     return backtrack(0, set())

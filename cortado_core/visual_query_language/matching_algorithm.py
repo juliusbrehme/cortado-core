@@ -7,6 +7,8 @@ from cortado_core.utils.split_graph import (
     ParallelGroup,
     SequenceGroup,
     AnythingGroup,
+    FallthroughGroup,
+    LeafGroup,
 )
 from cortado_core.visual_query_language.matching_functions import match
 
@@ -231,6 +233,12 @@ def match_parallel(query: ParallelGroup, variant: ParallelGroup) -> bool:
                         return True
                     # Backtrack: remove from used set and try next variant branch
                     used.remove(v_idx)
+
+                    if isinstance(q_branch, FallthroughGroup) or isinstance(
+                        q_branch, LeafGroup
+                    ):
+                        # No need to try further variant branches for FallthroughGroup or LeafGroup
+                        break
 
         return False
 
