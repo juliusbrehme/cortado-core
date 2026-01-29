@@ -49,15 +49,18 @@ class ParallelSolver:
             # Find sequence group
             if etype is OptionalGroup:
                 element = element[0]
+                etype = type(element)
 
             if etype is SequenceGroup:
+                assert (
+                    self.sequence_vm is None
+                ), "ParallelSolver supports only a single SequenceGroup"
                 # pylint: disable=import-outside-toplevel - prevents circular import
                 from cortado_core.visual_query_language.virtual_machine.vm import (
                     compile_vm,
                 )
 
                 self.sequence_vm = compile_vm(element, lazy)
-                break  # Only one sequence per parallel
 
     def match(self, variant: ParallelGroup) -> bool:
         assigned = [False] * variant.list_length()
@@ -219,7 +222,9 @@ class ParallelSolver:
             variant_element = run.variant[i]
             if self.sequence_vm.run(variant_element):
                 run.assigned[i] = True
-                return self.match_next(run)
+                if self.match_next(run):
+                    return True
+                run.assigned[i] = False  # Backtrack
             break  # There will be only one sequence in parallel group
 
         return False
