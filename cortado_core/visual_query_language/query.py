@@ -1,8 +1,8 @@
 from enum import Enum
 from cortado_core.utils.split_graph import SequenceGroup
+from cortado_core.visual_query_language.expand_tree import expand_tree
 from cortado_core.visual_query_language.matching_algorithm import match_sequential
 from cortado_core.visual_query_language.dfs_matching import match_sequential_dfs
-from cortado_core.visual_query_language.unfold_tree import unfold_tree
 from cortado_core.visual_query_language.relaxng.query import (
     build_query as build_relaxng_query,
 )
@@ -31,7 +31,7 @@ class PatternQuery:
 
 class DFSCompareQuery(PatternQuery):
     def __init__(self, query: SequenceGroup):
-        self.unfolded_trees = unfold_tree(query)
+        self.unfolded_trees = expand_tree(query)
 
     def match(self, variant: SequenceGroup) -> bool:
         for query in self.unfolded_trees:
@@ -56,7 +56,7 @@ class DFSCompareQuery(PatternQuery):
 
 class CustomTreeCompareQuery(PatternQuery):
     def __init__(self, query: SequenceGroup):
-        self.unfolded_trees = unfold_tree(query)
+        self.unfolded_trees = expand_tree(query)
 
     def match(self, variant: SequenceGroup) -> bool:
         for query in self.unfolded_trees:

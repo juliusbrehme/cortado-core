@@ -99,7 +99,7 @@ def match_sequential(query: SequenceGroup, variant: SequenceGroup) -> bool:
 
             found_anything_match = False
             if prefix_match:
-                if handle_anything(query, variant, idxQuery, idxVariant, has_end_point):
+                if handle_anything(query, variant, idxQuery, idxVariant):
                     return True
 
             # Otherwise, reset and slide the window
@@ -274,7 +274,6 @@ def handle_anything(
     full_variant: SequenceGroup,
     q_idx: int,
     v_idx: int,
-    has_end_point: bool,
 ) -> bool:
     """
     Helper to handle the 'Anything' operator.

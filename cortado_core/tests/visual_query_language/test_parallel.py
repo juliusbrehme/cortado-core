@@ -233,7 +233,6 @@ class TestLargeParallel:
             [ParallelGroup(lst=[LeafGroup(["a"])] * 10 + [LeafGroup(["b"])])]
         )
 
-
         assert query.match(variant)
 
     @pytest.mark.timeout(5)
