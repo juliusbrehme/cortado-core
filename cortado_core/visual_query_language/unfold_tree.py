@@ -29,6 +29,33 @@ def unfold_tree(tree_query: Group | List[Group]) -> List[Group]:
     if check_leaf(tree_query):
         return [tree_query]
 
+    # Handle LoopGroup directly (e.g., when inside OptionalGroup at the root of recursion)
+    if type(tree_query) is LoopGroup:
+        unfold_tree_list = unfold_tree(tree_query[0])
+        min_count = tree_query.min_count if tree_query.min_count is not None else 1
+        max_count = tree_query.max_count if tree_query.max_count is not None else 1
+        max_count = min(max_count, 200)
+
+        # Generate variants for each repetition count
+        all_variants = []
+        parent_type = None
+        for count in range(min_count, max_count + 1):
+            count_trees = []
+            for _ in range(count):
+                count_trees = merge_and_flatten(
+                    count_trees, unfold_tree_list, parent_type
+                )
+            all_variants.extend(count_trees)
+
+        # Wrap variants in SequenceGroup if they are lists
+        result = []
+        for variant in all_variants:
+            if isinstance(variant, list):
+                result.append(SequenceGroup(lst=variant))
+            else:
+                result.append(variant)
+        return result
+
     tree_query = add_start_end_to_parallel_group(tree_query)
 
     # Determine parent type for flattening same-type nesting
@@ -46,6 +73,12 @@ def unfold_tree(tree_query: Group | List[Group]) -> List[Group]:
             #     new_trees = add_to_tree_list(tree, new_trees)
             # Use merge_and_flatten to flatten same-type nesting (e.g., SequenceGroup inside SequenceGroup)
             new_trees = merge_and_flatten(new_trees, unfold_tree_list, parent_type)
+            # Append the paths where the optional is skipped
+            # If new_trees_copy is empty (optional at start), we still need to create a path without it
+            #if len(new_trees_copy) == 0:
+                # Optional at the start: create a path that skips it (empty path to continue with rest)
+               # new_trees.append([])
+            #else:
             new_trees.extend(new_trees_copy)
         elif type(child) is LoopGroup:
             # Generate variants for each repetition count from min_count to max_count
