@@ -92,12 +92,7 @@ class VMQuery(PatternQuery):
     def __init__(self, query: SequenceGroup, use_debt):
         self.vm = compile_vm(query, use_debt)
 
-        # print(query)
-        # self.vm.print_prog()
-
     def match(self, variant):
-        # print("Check variant:")
-        # print(variant)
         return self.vm.run(variant)
 
 
