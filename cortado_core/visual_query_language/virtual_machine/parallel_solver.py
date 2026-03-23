@@ -14,6 +14,8 @@ from cortado_core.utils.split_graph import (
     WildcardGroup,
     AnythingGroup,
     ChoiceGroup,
+    StartGroup,
+    EndGroup,
 )
 from cortado_core.visual_query_language.matching_functions import match as match_fn
 
@@ -60,7 +62,9 @@ class ParallelSolver:
                     compile_vm,
                 )
 
-                self.sequence_vm = compile_vm(element, lazy)
+                self.sequence_vm = compile_vm(
+                    SequenceGroup([StartGroup()] + element[:] + [EndGroup()]), lazy
+                )
 
     def match(self, variant: ParallelGroup) -> bool:
         assigned = [False] * variant.list_length()
